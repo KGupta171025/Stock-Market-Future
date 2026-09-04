@@ -1,7 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { Toaster } from 'sonner';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 // Pages
@@ -19,38 +20,40 @@ function App() {
   };
 
   return (
-    <Router>
-      <Toaster position="top-right" />
-      <Routes>
-        <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
-        <Route path="/auth" element={user ? <Navigate to="/dashboard" /> : <AuthPage />} />
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/analysis"
-          element={
-            <PrivateRoute>
-              <AnalysisPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/mutual-funds"
-          element={
-            <PrivateRoute>
-              <MutualFundsPage />
-            </PrivateRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <Toaster position="top-right" />
+        <Routes>
+          <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
+          <Route path="/auth" element={user ? <Navigate to="/dashboard" /> : <AuthPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/analysis"
+            element={
+              <PrivateRoute>
+                <AnalysisPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/mutual-funds"
+            element={
+              <PrivateRoute>
+                <MutualFundsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
