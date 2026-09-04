@@ -1,0 +1,15 @@
+{
+  "short_name": "StockFuture",
+  "name": "Stock Market Future - AI Prediction Platform",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#064E3B",
+  "background_color": "#0f172a"
+}

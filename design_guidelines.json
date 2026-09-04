@@ -1,0 +1,163 @@
+{
+  "design_system": {
+    "typography": {
+      "font_family": {
+        "heading": "Chivo, sans-serif",
+        "body": "Manrope, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "scaling": {
+        "h1": "text-4xl md:text-6xl font-bold tracking-tight",
+        "h2": "text-3xl md:text-4xl font-semibold tracking-tight",
+        "h3": "text-2xl font-semibold",
+        "body": "text-base leading-relaxed",
+        "small": "text-sm text-muted-foreground",
+        "label": "text-xs font-medium uppercase tracking-wider text-muted-foreground"
+      },
+      "imports": [
+        "https://fonts.googleapis.com/css2?family=Chivo:wght@300;400;700;900&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      ]
+    },
+    "colors": {
+      "palette": {
+        "primary": {
+          "DEFAULT": "#064E3B",
+          "foreground": "#FFFFFF",
+          "hover": "#065F46"
+        },
+        "secondary": {
+          "DEFAULT": "#F1F5F9",
+          "foreground": "#0F172A"
+        },
+        "accent": {
+          "DEFAULT": "#10B981",
+          "foreground": "#FFFFFF"
+        },
+        "destructive": {
+          "DEFAULT": "#EF4444",
+          "foreground": "#FFFFFF"
+        },
+        "background": {
+          "light": "#FFFFFF",
+          "dark": "#09090B"
+        },
+        "surface": {
+          "light": "#F8FAFC",
+          "dark": "#18181B"
+        }
+      },
+      "semantic": {
+        "up_trend": "#10B981",
+        "down_trend": "#EF4444",
+        "neutral": "#64748B",
+        "prediction_high": "#059669",
+        "prediction_low": "#DC2626"
+      }
+    },
+    "spacing": {
+      "container_padding": "p-4 md:p-8 lg:p-12",
+      "section_gap": "gap-8 md:gap-12",
+      "component_gap": "gap-4"
+    },
+    "visual_enhancers": {
+      "radius": "rounded-lg",
+      "shadows": {
+        "card": "shadow-sm hover:shadow-md transition-shadow duration-200",
+        "floating": "shadow-xl shadow-black/5"
+      },
+      "borders": "border border-border/50",
+      "glassmorphism": "bg-white/80 dark:bg-black/80 backdrop-blur-md border border-white/20"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md font-medium transition-all active:scale-95",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2 rounded-md font-medium transition-all",
+      "outline": "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 rounded-md transition-all",
+      "ghost": "hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 rounded-md transition-all"
+    },
+    "cards": {
+      "base": "rounded-xl border bg-card text-card-foreground shadow-sm",
+      "interactive": "rounded-xl border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all cursor-pointer hover:-translate-y-1"
+    },
+    "inputs": {
+      "base": "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    }
+  },
+  "layout_strategies": {
+    "dashboard_grid": {
+      "type": "Bento Grid",
+      "classes": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6",
+      "items": {
+        "summary": "col-span-1",
+        "main_chart": "col-span-1 md:col-span-2 lg:col-span-3 row-span-2",
+        "list": "col-span-1 row-span-2"
+      }
+    },
+    "analysis_view": {
+      "type": "Control Room",
+      "classes": "grid grid-cols-12 gap-4 h-[calc(100vh-4rem)]",
+      "sidebar": "col-span-12 md:col-span-3 lg:col-span-2 border-r p-4 overflow-y-auto",
+      "chart_area": "col-span-12 md:col-span-9 lg:col-span-10 p-4"
+    }
+  },
+  "assets": {
+    "images": [
+      {
+        "category": "hero_background",
+        "url": "https://images.unsplash.com/photo-1762279389083-abf71f22d338?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Abstract blue and pink financial lines for hero section background"
+      },
+      {
+        "category": "feature_card_1",
+        "url": "https://images.unsplash.com/photo-1760239037245-a372db8630f3?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Abstract geometric blocks for feature visualization"
+      },
+      {
+        "category": "feature_card_2",
+        "url": "https://images.unsplash.com/photo-1758979616445-f71e840289aa?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Abstract 3D shapes for analytics feature"
+      }
+    ],
+    "icons": {
+      "library": "lucide-react",
+      "usage": "Use stroke-width={1.5} for a clean, thin look"
+    }
+  },
+  "context_specific_rules": {
+    "market_status": {
+      "open_color": "text-green-500",
+      "closed_color": "text-red-500",
+      "indicator": "w-2 h-2 rounded-full animate-pulse"
+    },
+    "prediction_ui": {
+      "confidence_high": "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+      "confidence_low": "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+      "signal_buy": "text-green-600 font-bold uppercase tracking-wider",
+      "signal_sell": "text-red-600 font-bold uppercase tracking-wider"
+    },
+    "localization": {
+      "currency": "INR",
+      "symbol": "₹",
+      "indices": ["NIFTY 50", "SENSEX", "BANK NIFTY"]
+    }
+  },
+  "universal_guidelines": {
+    "general": [
+      "Do not use generic gradients. Use solid colors or subtle noise textures.",
+      "Ensure all interactive elements have hover states.",
+      "Use 'Manrope' for all numbers to ensure tabular alignment.",
+      "Default to Light Mode for the Landing Page, but allow Dark Mode toggle.",
+      "Dashboard should support both modes, but Dark Mode is preferred for charts."
+    ],
+    "accessibility": [
+      "Ensure text contrast ratio is at least 4.5:1.",
+      "Use aria-labels for all icon-only buttons.",
+      "Support keyboard navigation for the stock selector."
+    ],
+    "testing": [
+      "Add data-testid to all critical interactive elements (e.g., 'buy-button', 'stock-search-input')."
+    ]
+  },
+  "instructions_to_main_agent": "Follow the 'Clean Fintech' aesthetic. Use the provided image URLs for the landing page. Implement the 'Bento Grid' for the dashboard. Ensure the 'Prediction' UI is distinct and easy to read. Use Recharts or Lightweight Charts for data visualization."
+}
