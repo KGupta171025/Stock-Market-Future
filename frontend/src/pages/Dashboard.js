@@ -101,18 +101,40 @@ export default function Dashboard() {
       <div className="container mx-auto px-4 py-8" data-testid="dashboard-container">
         {/* Market Indices */}
         <section className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Market Indices</h2>
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Market Indices</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Click any index to view live chart, technical indicators & AI predictions</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {indices.map((index) => (
-              <Card key={index.symbol} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">{index.symbol}</CardTitle>
+              <Card 
+                key={index.symbol} 
+                className="hover:shadow-lg transition-all cursor-pointer hover:-translate-y-1 group border-border/80"
+                onClick={() => handleStockSelect({
+                  symbol: index.symbol,
+                  name: index.name || index.symbol,
+                  exchange: index.exchange || 'INDEX'
+                })}
+                data-testid={`index-card-${index.symbol}`}
+              >
+                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+                  <div>
+                    <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">
+                      {index.symbol}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">{index.name || 'Benchmark Index'}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="opacity-70 group-hover:opacity-100 group-hover:bg-primary/10 transition-all">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-3xl font-bold">₹{index.price?.toLocaleString('en-IN')}</p>
-                      <div className={`flex items-center gap-1 mt-1 ${index.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`flex items-center gap-1 mt-1 ${index.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                         {index.change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                         <span className="font-semibold">
                           {index.change >= 0 ? '+' : ''}{index.change} ({index.change_percent?.toFixed(2)}%)
@@ -120,8 +142,9 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    H: ₹{index.high} L: ₹{index.low}
+                  <div className="mt-3 pt-2 border-t border-border/40 flex justify-between items-center text-xs text-muted-foreground">
+                    <span>H: ₹{index.high?.toLocaleString('en-IN')}  L: ₹{index.low?.toLocaleString('en-IN')}</span>
+                    <span className="text-primary font-medium group-hover:underline">Analyze →</span>
                   </div>
                 </CardContent>
               </Card>

@@ -46,6 +46,9 @@ export const getBackendConfig = () => {
 // ==========================================
 
 const POPULAR_STOCKS = [
+  { symbol: 'NIFTY 50', name: 'NIFTY 50 Benchmark Index', exchange: 'NSE Index', sector: 'Broad Market Index', basePrice: 25145.20 },
+  { symbol: 'SENSEX', name: 'BSE SENSEX Benchmark Index', exchange: 'BSE Index', sector: 'Broad Market Index', basePrice: 82365.75 },
+  { symbol: 'BANK NIFTY', name: 'NIFTY Bank Sector Index', exchange: 'NSE Index', sector: 'Banking Sector Index', basePrice: 51840.60 },
   { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', exchange: 'NSE', sector: 'Energy & Petrochemicals', basePrice: 2985.50 },
   { symbol: 'TCS', name: 'Tata Consultancy Services', exchange: 'NSE', sector: 'Information Technology', basePrice: 4215.20 },
   { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', exchange: 'NSE', sector: 'Banking & Finance', basePrice: 1642.80 },
@@ -173,6 +176,8 @@ export const getIndices = async () => {
     indices: [
       {
         symbol: 'NIFTY 50',
+        name: 'NIFTY 50 Benchmark Index',
+        exchange: 'NSE Index',
         price: 25145.20,
         change: 142.80,
         change_percent: 0.57,
@@ -181,6 +186,8 @@ export const getIndices = async () => {
       },
       {
         symbol: 'SENSEX',
+        name: 'BSE SENSEX Benchmark Index',
+        exchange: 'BSE Index',
         price: 82365.75,
         change: 410.25,
         change_percent: 0.50,
@@ -189,6 +196,8 @@ export const getIndices = async () => {
       },
       {
         symbol: 'BANK NIFTY',
+        name: 'NIFTY Bank Sector Index',
+        exchange: 'NSE Index',
         price: 51840.60,
         change: -95.40,
         change_percent: -0.18,
