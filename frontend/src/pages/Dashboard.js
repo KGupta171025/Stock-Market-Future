@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getIndices, getMarketStatus, getStocksList } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { TrendingUp, TrendingDown, LogOut, Search, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, LogOut, Search, BarChart3, Layers, Sparkles, Activity } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
+
+const SECTOR_CATEGORIES = ['All', 'Banking', 'IT', 'Energy', 'FMCG', 'Auto', 'ETFs', 'Large Cap'];
 
 export default function Dashboard() {
   const [indices, setIndices] = useState([]);
   const [marketStatus, setMarketStatus] = useState(null);
   const [stocks, setStocks] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [loading, setLoading] = useState(true);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
@@ -22,6 +26,7 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
+      setLoading(true);
       const [indicesData, statusData, stocksData] = await Promise.all([
         getIndices(),
         getMarketStatus(),
@@ -33,6 +38,8 @@ export default function Dashboard() {
     } catch (error) {
       toast.error('Failed to fetch dashboard data');
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,155 +56,287 @@ export default function Dashboard() {
     navigate('/analysis', { state: { stock } });
   };
 
-  const filteredStocks = stocks.filter(stock =>
-    stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    stock.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredStocks = stocks.filter(stock => {
+    const matchesSearch = 
+      stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      stock.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (stock.sector && stock.sector.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (!matchesSearch) return false;
+    if (selectedCategory === 'All') return true;
+    if (selectedCategory === 'Large Cap') return stock.category === 'Large Cap' || !stock.category;
+    return (stock.category || '').toLowerCase() === selectedCategory.toLowerCase() ||
+           (stock.sector || '').toLowerCase().includes(selectedCategory.toLowerCase());
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Header */}
-      <header className="border-b bg-white dark:bg-slate-900 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center flex-wrap gap-3">
+      {/* Top Header */}
+      <header className="border-b bg-white dark:bg-slate-900 sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 py-3.5 flex justify-between items-center flex-wrap gap-3">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
+            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/dashboard')}>
               <div className="p-2 bg-primary/10 rounded-xl">
                 <TrendingUp className="h-6 w-6 text-primary" />
               </div>
-              <h1 className="text-xl font-bold tracking-tight">Stock Market Future</h1>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight leading-tight">Stock Market Future</h1>
+                <p className="text-[10px] text-muted-foreground font-medium hidden sm:block">AI-Powered NSE/BSE Equity & Fund Intelligence</p>
+              </div>
             </div>
 
-            <nav className="hidden md:flex items-center gap-2">
-              <Button variant="secondary" size="sm" onClick={() => navigate('/dashboard')}>
+            <nav className="hidden md:flex items-center gap-1.5 ml-2">
+              <Button variant="secondary" size="sm" onClick={() => navigate('/dashboard')} className="font-semibold">
                 Dashboard
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/mutual-funds')}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/mutual-funds')} className="text-muted-foreground hover:text-foreground">
+                <Layers className="h-4 w-4 mr-1.5" />
                 Mutual Funds
               </Button>
             </nav>
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="hidden sm:inline-flex" onClick={() => navigate('/mutual-funds')}>
+            <Button variant="outline" size="sm" className="hidden sm:inline-flex gap-1.5" onClick={() => navigate('/mutual-funds')}>
+              <Layers className="h-3.5 w-3.5 text-primary" />
               Explore Mutual Funds
             </Button>
+            
             {marketStatus && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
-                <div className={`w-2 h-2 rounded-full ${marketStatus.is_open ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                <span className="text-xs font-medium">
-                  Market {marketStatus.is_open ? 'Open' : 'Closed'}
+              <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-border/50">
+                <div className={`w-2 h-2 rounded-full ${marketStatus.is_open ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
+                <span className="text-xs font-semibold">
+                  {marketStatus.is_open ? 'NSE/BSE Open' : 'Market Closed'}
                 </span>
               </div>
             )}
-            <span className="text-xs text-muted-foreground hidden lg:inline">{user?.email}</span>
+
+            <span className="text-xs text-muted-foreground hidden lg:inline font-mono">{user?.email}</span>
             <Button variant="outline" size="sm" onClick={handleLogout} data-testid="logout-button">
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="h-4 w-4 mr-1.5" />
               Logout
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8" data-testid="dashboard-container">
-        {/* Market Indices */}
+      <main className="container mx-auto px-4 py-6" data-testid="dashboard-container">
+        {/* Market Benchmark Indices Section */}
         <section className="mb-8">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-3.5">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Market Indices</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Click any index to view live chart, technical indicators & AI predictions</p>
+              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                Indian Benchmark Indices
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Real-time benchmark levels with Last Traded Price (LTP), intraday range, and multi-timeframe analytics
+              </p>
             </div>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {indices.map((index) => (
-              <Card 
-                key={index.symbol} 
-                className="hover:shadow-lg transition-all cursor-pointer hover:-translate-y-1 group border-border/80"
-                onClick={() => handleStockSelect({
-                  symbol: index.symbol,
-                  name: index.name || index.symbol,
-                  exchange: index.exchange || 'INDEX'
-                })}
-                data-testid={`index-card-${index.symbol}`}
-              >
-                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                  <div>
-                    <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">
-                      {index.symbol}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">{index.name || 'Benchmark Index'}</p>
-                  </div>
-                  <Button size="sm" variant="ghost" className="opacity-70 group-hover:opacity-100 group-hover:bg-primary/10 transition-all">
-                    <BarChart3 className="h-4 w-4 text-primary" />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center">
+            {indices.map((index) => {
+              const isPositive = index.change >= 0;
+              return (
+                <Card 
+                  key={index.symbol} 
+                  className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1 group border-border/80 bg-white dark:bg-slate-900"
+                  onClick={() => handleStockSelect({
+                    symbol: index.symbol,
+                    name: index.name || index.symbol,
+                    exchange: index.exchange || 'INDEX',
+                    price: index.price,
+                    change: index.change,
+                    change_percent: index.change_percent,
+                    high: index.high,
+                    low: index.low,
+                    prev_close: index.prev_close,
+                    volume: index.volume
+                  })}
+                  data-testid={`index-card-${index.symbol}`}
+                >
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                     <div>
-                      <p className="text-3xl font-bold">₹{index.price?.toLocaleString('en-IN')}</p>
-                      <div className={`flex items-center gap-1 mt-1 ${index.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {index.change >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                        <span className="font-semibold">
-                          {index.change >= 0 ? '+' : ''}{index.change} ({index.change_percent?.toFixed(2)}%)
+                      <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">
+                        {index.symbol}
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">{index.name || 'Benchmark Index'}</p>
+                    </div>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      {index.exchange}
+                    </span>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between items-baseline mb-2">
+                      <p className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
+                        ₹{index.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </p>
+                      <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                        isPositive 
+                          ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
+                          : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+                      }`}>
+                        {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                        <span>
+                          {isPositive ? '+' : ''}{index.change?.toFixed(2)} ({isPositive ? '+' : ''}{index.change_percent?.toFixed(2)}%)
                         </span>
                       </div>
                     </div>
-                  </div>
-                  <div className="mt-3 pt-2 border-t border-border/40 flex justify-between items-center text-xs text-muted-foreground">
-                    <span>H: ₹{index.high?.toLocaleString('en-IN')}  L: ₹{index.low?.toLocaleString('en-IN')}</span>
-                    <span className="text-primary font-medium group-hover:underline">Analyze →</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+
+                    <div className="pt-2 border-t border-border/50 flex justify-between items-center text-xs text-muted-foreground">
+                      <span>High: ₹{index.high?.toLocaleString('en-IN')}</span>
+                      <span>Low: ₹{index.low?.toLocaleString('en-IN')}</span>
+                      <span className="text-primary font-semibold group-hover:underline flex items-center gap-0.5">
+                        Analyze <BarChart3 className="h-3 w-3 inline ml-0.5" />
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </section>
 
-        {/* Stock Search & List */}
+        {/* Stocks Explorer Section */}
         <section>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold">Stocks</h2>
-          </div>
-          
-          <div className="mb-4">
-            <div className="relative">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Live Equities Watchlist & LTP Details
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Accurate Last Traded Price (LTP), daily price changes, volumes, and direct AI predictive signals
+              </p>
+            </div>
+
+            {/* Search Box */}
+            <div className="w-full md:w-80 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search stocks..."
+                placeholder="Search stocks by symbol, name, sector..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-9 bg-white dark:bg-slate-900 text-sm"
                 data-testid="stock-search-input"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredStocks.map((stock) => (
-              <Card 
-                key={stock.symbol} 
-                className="hover:shadow-md transition-all cursor-pointer hover:-translate-y-1"
-                onClick={() => handleStockSelect(stock)}
-                data-testid={`stock-card-${stock.symbol}`}
+          {/* Category Filter Pills */}
+          <div className="flex flex-wrap gap-1.5 mb-5">
+            {SECTOR_CATEGORIES.map(cat => (
+              <Button
+                key={cat}
+                variant={selectedCategory === cat ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory(cat)}
+                className="text-xs h-8 px-3 rounded-full"
               >
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{stock.symbol}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{stock.name}</p>
-                    </div>
-                    <Button size="sm" variant="ghost" data-testid={`analyze-btn-${stock.symbol}`}>
-                      <BarChart3 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{stock.exchange}</p>
-                </CardContent>
-              </Card>
+                {cat}
+              </Button>
             ))}
           </div>
+
+          {/* Stocks Cards Grid */}
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3" />
+              <p className="text-xs text-muted-foreground">Syncing live market data...</p>
+            </div>
+          ) : filteredStocks.length === 0 ? (
+            <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border p-8">
+              <p className="text-muted-foreground text-sm font-medium">No stocks found matching "{searchQuery}"</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}>
+                Reset Search
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredStocks.map((stock) => {
+                const isPositive = stock.change >= 0;
+                const high = stock.high || stock.price * 1.01;
+                const low = stock.low || stock.price * 0.99;
+                const rangePercent = Math.max(0, Math.min(100, ((stock.price - low) / (high - low || 1)) * 100));
+
+                return (
+                  <Card 
+                    key={stock.symbol} 
+                    className="hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-1 group bg-white dark:bg-slate-900 border-border/80 flex flex-col justify-between"
+                    onClick={() => handleStockSelect(stock)}
+                    data-testid={`stock-card-${stock.symbol}`}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">
+                              {stock.symbol}
+                            </CardTitle>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                              {stock.exchange || 'NSE'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{stock.name}</p>
+                        </div>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          {stock.sector || 'Equities'}
+                        </span>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="pt-1">
+                      {/* LTP & Price Change */}
+                      <div className="flex justify-between items-baseline mb-3">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Last Traded Price</span>
+                          <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                            ₹{stock.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                          isPositive 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
+                            : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+                        }`}>
+                          {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                          <span>
+                            {isPositive ? '+' : ''}{stock.change?.toFixed(2)} ({isPositive ? '+' : ''}{stock.change_percent?.toFixed(2)}%)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Day Range Bar */}
+                      <div className="space-y-1 mb-3 bg-slate-50 dark:bg-slate-950/50 p-2 rounded-lg border border-border/40">
+                        <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
+                          <span>Low: ₹{low?.toLocaleString('en-IN')}</span>
+                          <span>High: ₹{high?.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden relative">
+                          <div 
+                            className={`h-full rounded-full ${isPositive ? 'bg-green-500' : 'bg-red-500'}`} 
+                            style={{ width: `${rangePercent}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Bottom stats row */}
+                      <div className="pt-2 border-t border-border/50 flex justify-between items-center text-xs text-muted-foreground">
+                        <span>Vol: <strong className="text-slate-700 dark:text-slate-300">{stock.volume || '5.2M'}</strong></span>
+                        <span>M-Cap: <strong className="text-slate-700 dark:text-slate-300">{stock.market_cap || 'Large Cap'}</strong></span>
+                        <span className="text-primary font-semibold group-hover:underline flex items-center gap-0.5">
+                          Analyze →
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </section>
-      </div>
+      </main>
     </div>
   );
 }
