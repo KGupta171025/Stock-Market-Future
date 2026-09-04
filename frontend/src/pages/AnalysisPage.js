@@ -1,21 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { analyzeStock, getMarketStatus } from '../services/api';
+import { analyzeStock, getMarketStatus, getStocksList } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Switch } from '../components/ui/switch';
-import { ArrowLeft, TrendingUp, TrendingDown, Clock, Newspaper } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Clock, Newspaper, BarChart3, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { createChart } from 'lightweight-charts';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function AnalysisPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   
   const defaultStock = { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', exchange: 'NSE' };
+  const [stockList, setStockList] = useState([defaultStock]);
   const [stock, setStock] = useState(location.state?.stock || defaultStock);
   const [timeframe, setTimeframe] = useState('1day');
   const [realtime, setRealtime] = useState(false);
@@ -27,14 +30,26 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     fetchMarketStatus();
+    loadStocks();
   }, []);
+
+  const loadStocks = async () => {
+    try {
+      const data = await getStocksList();
+      if (data?.stocks?.length) {
+        setStockList(data.stocks);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     if (stock) {
-      handleAnalyze();
+      handleAnalyze(stock, timeframe, currency);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stock]);
+  }, [stock, timeframe, currency]);
 
   useEffect(() => {
     if (analysis && chartContainerRef.current) {
@@ -60,8 +75,8 @@ export default function AnalysisPage() {
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!stock) {
+  const handleAnalyze = async (selectedStock = stock, selectedTimeframe = timeframe, selectedCurrency = currency) => {
+    if (!selectedStock) {
       toast.error('Please select a stock');
       return;
     }
@@ -69,21 +84,34 @@ export default function AnalysisPage() {
     try {
       setLoading(true);
       const request = {
-        symbol: stock.symbol,
-        exchange: stock.exchange || 'NSE',
-        timeframe,
+        symbol: selectedStock.symbol,
+        exchange: selectedStock.exchange || 'NSE',
+        timeframe: selectedTimeframe,
         realtime: realtime && marketStatus?.is_open,
-        currency
+        currency: selectedCurrency,
       };
       
       const result = await analyzeStock(request);
       setAnalysis(result);
-      toast.success('Analysis complete!');
     } catch (error) {
       toast.error('Analysis failed: ' + error.message);
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStockChange = (symbol) => {
+    const found = stockList.find(s => s.symbol === symbol) || { symbol, name: symbol, exchange: 'NSE' };
+    setStock(found);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      toast.error('Logout failed');
     }
   };
 
@@ -178,75 +206,134 @@ export default function AnalysisPage() {
       {/* Header */}
       <header className="border-b bg-white dark:bg-slate-900 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4 mb-4">
-            <Button variant="ghost" onClick={() => navigate('/dashboard')} data-testid="back-button">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold">{stock.symbol}</h1>
-              <p className="text-sm text-muted-foreground">{stock.name}</p>
+          <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} data-testid="back-button">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
+                <div className="p-2 bg-primary/10 rounded-xl">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                </div>
+                <h1 className="text-xl font-bold tracking-tight hidden sm:inline">Stock Market Future</h1>
+              </div>
+
+              <nav className="hidden md:flex items-center gap-2 ml-2">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                  Dashboard
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/mutual-funds')}>
+                  Mutual Funds
+                </Button>
+              </nav>
             </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground hidden lg:inline">{user?.email}</span>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </div>
+
+          {/* Stock Info & Switcher Bar */}
+          <div className="flex items-center justify-between gap-4 py-2 border-t border-border/40 flex-wrap">
+            <div className="flex items-center gap-3">
+              <Select value={stock?.symbol || 'RELIANCE'} onValueChange={handleStockChange}>
+                <SelectTrigger className="w-48 font-bold text-base">
+                  <SelectValue placeholder="Select Stock" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stockList.map(s => (
+                    <SelectItem key={s.symbol} value={s.symbol}>
+                      {s.symbol} - {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                {stock?.exchange || 'NSE'}
+              </span>
+            </div>
+
             {analysis && (
-              <div className="text-right">
-                <p className="text-3xl font-bold">₹{analysis.current_price?.toLocaleString('en-IN')}</p>
-                <div className={`flex items-center gap-1 ${analysis.prediction.trend === 'UP' ? 'text-green-600' : 'text-red-600'}`}>
-                  {analysis.prediction.trend === 'UP' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                  <span className="font-semibold">{analysis.prediction.trend}</span>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <span className="text-2xl font-bold">
+                    {currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₹'}
+                    {analysis.current_price?.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                  analysis.prediction.trend === 'UP' ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+                }`}>
+                  {analysis.prediction.trend === 'UP' ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                  <span>{analysis.prediction.trend}</span>
                 </div>
               </div>
             )}
           </div>
 
           {/* Control Bar */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <Select value={timeframe} onValueChange={setTimeframe}>
-              <SelectTrigger className="w-32" data-testid="timeframe-selector">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1min">1 Minute</SelectItem>
-                <SelectItem value="5min">5 Minutes</SelectItem>
-                <SelectItem value="15min">15 Minutes</SelectItem>
-                <SelectItem value="1h">1 Hour</SelectItem>
-                <SelectItem value="1day">1 Day</SelectItem>
-                <SelectItem value="1week">1 Week</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap gap-3 items-center pt-3 border-t border-border/40">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Timeframe:</span>
+              <Select value={timeframe} onValueChange={setTimeframe}>
+                <SelectTrigger className="w-32" data-testid="timeframe-selector">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1min">1 Minute</SelectItem>
+                  <SelectItem value="5min">5 Minutes</SelectItem>
+                  <SelectItem value="15min">15 Minutes</SelectItem>
+                  <SelectItem value="1h">1 Hour</SelectItem>
+                  <SelectItem value="1day">1 Day</SelectItem>
+                  <SelectItem value="1week">1 Week</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 border rounded-md">
               <Switch
                 checked={realtime}
                 onCheckedChange={setRealtime}
                 disabled={!marketStatus?.is_open}
                 data-testid="realtime-toggle"
               />
-              <span className="text-sm">Real-Time</span>
+              <span className="text-xs">Real-Time</span>
             </div>
 
-            <Select value={chartType} onValueChange={setChartType}>
-              <SelectTrigger className="w-40" data-testid="chart-type-selector">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="line">Line Chart</SelectItem>
-                <SelectItem value="candlestick">Candlestick</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Chart:</span>
+              <Select value={chartType} onValueChange={setChartType}>
+                <SelectTrigger className="w-36" data-testid="chart-type-selector">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="candlestick">Candlestick</SelectItem>
+                  <SelectItem value="line">Line Chart</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={currency} onValueChange={setCurrency}>
-              <SelectTrigger className="w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="INR">₹ INR</SelectItem>
-                <SelectItem value="USD">$ USD</SelectItem>
-                <SelectItem value="EUR">€ EUR</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Currency:</span>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INR">₹ INR</SelectItem>
+                  <SelectItem value="USD">$ USD</SelectItem>
+                  <SelectItem value="EUR">€ EUR</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Button onClick={handleAnalyze} disabled={loading} data-testid="analyze-button">
-              {loading ? 'Analyzing...' : 'Analyze'}
+            <Button size="sm" onClick={() => handleAnalyze(stock, timeframe, currency)} disabled={loading} data-testid="analyze-button">
+              {loading ? 'Analyzing...' : 'Re-Analyze'}
             </Button>
           </div>
         </div>
