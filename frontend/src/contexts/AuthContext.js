@@ -5,6 +5,7 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
@@ -127,6 +128,17 @@ export const AuthProvider = ({ children }) => {
     return cred;
   };
 
+  const loginWithApple = async () => {
+    const provider = new OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+    const cred = await signInWithPopup(auth, provider);
+    if (cred.user) {
+      await syncUserProfile(cred.user);
+    }
+    return cred;
+  };
+
   const loginAsGuest = () => {
     const demoUser = {
       uid: 'demo-guest-investor',
@@ -163,6 +175,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     loginWithGoogle,
+    loginWithApple,
     loginAsGuest,
     updateUserProfileData,
   };
