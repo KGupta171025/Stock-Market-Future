@@ -440,6 +440,350 @@ export const POPULAR_STOCKS = [
   },
 ];
 
+// ==========================================
+// Comprehensive US Stock Market Database (NYSE, NASDAQ, S&P 500)
+// ==========================================
+
+export const POPULAR_US_INDICES = [
+  {
+    symbol: 'S&P 500',
+    name: 'S&P 500 Benchmark Index',
+    exchange: 'NYSE/NASDAQ Index',
+    sector: 'US Benchmark Index',
+    price: 5782.50,
+    change: 38.40,
+    change_percent: 0.67,
+    high: 5798.20,
+    low: 5745.10,
+    prev_close: 5744.10,
+    volume: '2.45B',
+    pe_ratio: 27.2,
+    week_52_high: 5878.46,
+    week_52_low: 4103.78,
+    currency: 'USD',
+  },
+  {
+    symbol: 'NASDAQ',
+    name: 'NASDAQ Composite Index',
+    exchange: 'NASDAQ Index',
+    sector: 'Tech Benchmark Index',
+    price: 18342.80,
+    change: 154.20,
+    change_percent: 0.85,
+    high: 18410.50,
+    low: 18220.30,
+    prev_close: 18188.60,
+    volume: '4.82B',
+    pe_ratio: 31.4,
+    week_52_high: 18671.07,
+    week_52_low: 14058.30,
+    currency: 'USD',
+  },
+  {
+    symbol: 'DOW JONES',
+    name: 'Dow Jones Industrial Average',
+    exchange: 'NYSE Index',
+    sector: 'Industrial & Bluechip',
+    price: 42114.20,
+    change: 134.80,
+    change_percent: 0.32,
+    high: 42250.00,
+    low: 41980.50,
+    prev_close: 41979.40,
+    volume: '365.8M',
+    pe_ratio: 21.8,
+    week_52_high: 42628.32,
+    week_52_low: 32327.42,
+    currency: 'USD',
+  },
+  {
+    symbol: 'RUSSELL 2000',
+    name: 'Russell 2000 Small-Cap Index',
+    exchange: 'US Index',
+    sector: 'Small-Cap Benchmark',
+    price: 2220.40,
+    change: 9.80,
+    change_percent: 0.44,
+    high: 2235.00,
+    low: 2205.10,
+    prev_close: 2210.60,
+    volume: '1.24B',
+    pe_ratio: 24.1,
+    week_52_high: 2299.10,
+    week_52_low: 1633.67,
+    currency: 'USD',
+  },
+];
+
+export const POPULAR_US_STOCKS = [
+  {
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    exchange: 'NASDAQ',
+    sector: 'Consumer Technology & AI',
+    category: 'Mega-Tech',
+    price: 228.40,
+    change: 3.10,
+    change_percent: 1.38,
+    high: 230.15,
+    low: 225.80,
+    prev_close: 225.30,
+    volume: '48.2M',
+    market_cap: '$3.48 Trillion',
+    pe_ratio: 34.2,
+    week_52_high: 237.23,
+    week_52_low: 164.08,
+    currency: 'USD',
+  },
+  {
+    symbol: 'NVDA',
+    name: 'NVIDIA Corporation',
+    exchange: 'NASDAQ',
+    sector: 'AI GPUs & Accelerated Computing',
+    category: 'Semiconductors',
+    price: 124.80,
+    change: 4.20,
+    change_percent: 3.48,
+    high: 126.50,
+    low: 121.20,
+    prev_close: 120.60,
+    volume: '98.4M',
+    market_cap: '$3.06 Trillion',
+    pe_ratio: 54.8,
+    week_52_high: 140.76,
+    week_52_low: 39.23,
+    currency: 'USD',
+  },
+  {
+    symbol: 'MSFT',
+    name: 'Microsoft Corporation',
+    exchange: 'NASDAQ',
+    sector: 'Cloud Computing & Enterprise AI',
+    category: 'Mega-Tech',
+    price: 435.60,
+    change: 4.80,
+    change_percent: 1.11,
+    high: 438.20,
+    low: 431.50,
+    prev_close: 430.80,
+    volume: '21.5M',
+    market_cap: '$3.24 Trillion',
+    pe_ratio: 36.5,
+    week_52_high: 468.35,
+    week_52_low: 309.45,
+    currency: 'USD',
+  },
+  {
+    symbol: 'GOOGL',
+    name: 'Alphabet Inc. (Google)',
+    exchange: 'NASDAQ',
+    sector: 'Search, Advertising & Gemini AI',
+    category: 'Mega-Tech',
+    price: 165.20,
+    change: 1.95,
+    change_percent: 1.20,
+    high: 167.40,
+    low: 163.80,
+    prev_close: 163.25,
+    volume: '26.8M',
+    market_cap: '$2.04 Trillion',
+    pe_ratio: 24.1,
+    week_52_high: 191.75,
+    week_52_low: 120.21,
+    currency: 'USD',
+  },
+  {
+    symbol: 'AMZN',
+    name: 'Amazon.com Inc.',
+    exchange: 'NASDAQ',
+    sector: 'E-Commerce, Logistics & AWS Cloud',
+    category: 'Mega-Tech',
+    price: 188.50,
+    change: 2.60,
+    change_percent: 1.40,
+    high: 190.25,
+    low: 186.40,
+    prev_close: 185.90,
+    volume: '34.1M',
+    market_cap: '$1.96 Trillion',
+    pe_ratio: 42.6,
+    week_52_high: 201.20,
+    week_52_low: 118.35,
+    currency: 'USD',
+  },
+  {
+    symbol: 'META',
+    name: 'Meta Platforms Inc.',
+    exchange: 'NASDAQ',
+    sector: 'Social Platforms & Open Source AI',
+    category: 'Mega-Tech',
+    price: 512.30,
+    change: 8.40,
+    change_percent: 1.67,
+    high: 516.80,
+    low: 505.20,
+    prev_close: 503.90,
+    volume: '14.2M',
+    market_cap: '$1.30 Trillion',
+    pe_ratio: 26.8,
+    week_52_high: 544.23,
+    week_52_low: 279.40,
+    currency: 'USD',
+  },
+  {
+    symbol: 'TSLA',
+    name: 'Tesla Inc.',
+    exchange: 'NASDAQ',
+    sector: 'Autonomous Mobility & Clean Energy',
+    category: 'EV & Auto',
+    price: 218.90,
+    change: -4.50,
+    change_percent: -2.01,
+    high: 224.50,
+    low: 216.80,
+    prev_close: 223.40,
+    volume: '62.8M',
+    market_cap: '$698.5 Billion',
+    pe_ratio: 62.4,
+    week_52_high: 271.00,
+    week_52_low: 138.80,
+    currency: 'USD',
+  },
+  {
+    symbol: 'AVGO',
+    name: 'Broadcom Inc.',
+    exchange: 'NASDAQ',
+    sector: 'Custom AI ASICs & Networking',
+    category: 'Semiconductors',
+    price: 168.40,
+    change: 5.10,
+    change_percent: 3.12,
+    high: 170.80,
+    low: 164.20,
+    prev_close: 163.30,
+    volume: '18.9M',
+    market_cap: '$786.2 Billion',
+    pe_ratio: 44.2,
+    week_52_high: 185.16,
+    week_52_low: 79.80,
+    currency: 'USD',
+  },
+  {
+    symbol: 'AMD',
+    name: 'Advanced Micro Devices',
+    exchange: 'NASDAQ',
+    sector: 'High-Performance Computing & Instinct AI',
+    category: 'Semiconductors',
+    price: 152.80,
+    change: 3.60,
+    change_percent: 2.41,
+    high: 155.10,
+    low: 149.80,
+    prev_close: 149.20,
+    volume: '42.5M',
+    market_cap: '$247.5 Billion',
+    pe_ratio: 98.4,
+    week_52_high: 227.30,
+    week_52_low: 94.04,
+    currency: 'USD',
+  },
+  {
+    symbol: 'NFLX',
+    name: 'Netflix Inc.',
+    exchange: 'NASDAQ',
+    sector: 'Digital Entertainment & Streaming Media',
+    category: 'Consumer & Retail',
+    price: 690.50,
+    change: 7.20,
+    change_percent: 1.05,
+    high: 695.40,
+    low: 684.00,
+    prev_close: 683.30,
+    volume: '3.8M',
+    market_cap: '$296.8 Billion',
+    pe_ratio: 41.5,
+    week_52_high: 711.33,
+    week_52_low: 344.73,
+    currency: 'USD',
+  },
+  {
+    symbol: 'JPM',
+    name: 'JPMorgan Chase & Co.',
+    exchange: 'NYSE',
+    sector: 'Investment Banking & Global Financial Services',
+    category: 'Finance',
+    price: 214.20,
+    change: 1.80,
+    change_percent: 0.85,
+    high: 215.80,
+    low: 212.90,
+    prev_close: 212.40,
+    volume: '9.4M',
+    market_cap: '$612.4 Billion',
+    pe_ratio: 12.2,
+    week_52_high: 225.48,
+    week_52_low: 137.11,
+    currency: 'USD',
+  },
+  {
+    symbol: 'BRK.B',
+    name: 'Berkshire Hathaway Inc.',
+    exchange: 'NYSE',
+    sector: 'Diversified Conglomerate & Insurance',
+    category: 'Finance',
+    price: 450.80,
+    change: 2.10,
+    change_percent: 0.47,
+    high: 453.20,
+    low: 448.90,
+    prev_close: 448.70,
+    volume: '4.1M',
+    market_cap: '$982.5 Billion',
+    pe_ratio: 21.4,
+    week_52_high: 484.82,
+    week_52_low: 330.58,
+    currency: 'USD',
+  },
+  {
+    symbol: 'SPY',
+    name: 'SPDR S&P 500 ETF Trust',
+    exchange: 'NYSE Arca',
+    sector: 'Index Benchmark ETF',
+    category: 'ETFs',
+    price: 576.20,
+    change: 3.80,
+    change_percent: 0.66,
+    high: 577.90,
+    low: 573.10,
+    prev_close: 572.40,
+    volume: '58.2M',
+    market_cap: '$585.0 Billion',
+    pe_ratio: 0,
+    week_52_high: 585.50,
+    week_52_low: 409.21,
+    currency: 'USD',
+  },
+  {
+    symbol: 'QQQ',
+    name: 'Invesco QQQ Trust Series 1',
+    exchange: 'NASDAQ',
+    sector: 'Tech 100 Growth ETF',
+    category: 'ETFs',
+    price: 488.90,
+    change: 4.10,
+    change_percent: 0.85,
+    high: 491.20,
+    low: 485.40,
+    prev_close: 484.80,
+    volume: '39.8M',
+    market_cap: '$290.4 Billion',
+    pe_ratio: 0,
+    week_52_high: 503.52,
+    week_52_low: 342.35,
+    currency: 'USD',
+  },
+];
+
 export const POPULAR_MUTUAL_FUNDS = [
   {
     scheme_code: 'INF0R8F01018',
@@ -918,6 +1262,36 @@ const checkMarketStatusMock = () => {
   };
 };
 
+export const checkUSMarketStatusMock = () => {
+  const now = new Date();
+  // US Eastern Time (UTC-4 in EDT or UTC-5 in EST)
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const edt = new Date(utc - (3600000 * 4));
+  const day = edt.getDay();
+  const hour = edt.getHours();
+  const min = edt.getMinutes();
+  const totalMin = hour * 60 + min;
+
+  const isWeekday = day >= 1 && day <= 5;
+  // Regular market hours: 9:30 AM (570 min) to 4:00 PM (960 min) EDT
+  const isOpen = isWeekday && totalMin >= 570 && totalMin <= 960;
+  const isPreMarket = isWeekday && totalMin >= 240 && totalMin < 570;
+  const isAfterHours = isWeekday && totalMin > 960 && totalMin <= 1200;
+
+  let session = 'Market Closed';
+  if (isOpen) session = 'Regular Trading';
+  else if (isPreMarket) session = 'Pre-Market';
+  else if (isAfterHours) session = 'After-Hours';
+
+  return {
+    is_open: isOpen,
+    market: 'NYSE/NASDAQ (US)',
+    current_time_est: edt.toLocaleTimeString('en-US', { hour12: true }) + ' EDT',
+    session,
+    next_open: '09:30 AM EDT (Next Trading Day)',
+  };
+};
+
 /**
  * Generate highly realistic OHLC candle series ending EXACTLY at targetLtp
  */
@@ -942,7 +1316,7 @@ const generateMockTimeSeries = (targetLtp, timeframe = '1day', count = 100) => {
     const randomFactor = (Math.sin(i * 0.3) * 0.005) + ((Math.random() - 0.49) * volatility);
     
     const close = currentClose;
-    const open = Math.max(1, close * (1 - randomFactor));
+    const open = Math.max(0.5, close * (1 - randomFactor));
     const high = Math.max(open, close) * (1 + (Math.random() * 0.006));
     const low = Math.min(open, close) * (1 - (Math.random() * 0.006));
     const volume = Math.floor(Math.random() * 800000 + 150000);
@@ -1004,6 +1378,18 @@ export const getMarketStatus = async () => {
   return checkMarketStatusMock();
 };
 
+export const getUSMarketStatus = async () => {
+  if (currentBaseUrl) {
+    try {
+      const response = await api.get('/us/market/status');
+      if (response.data) return response.data;
+    } catch (err) {
+      console.warn('Backend unavailable, using simulated US market status.');
+    }
+  }
+  return checkUSMarketStatusMock();
+};
+
 export const getIndices = async () => {
   if (currentBaseUrl) {
     try {
@@ -1014,6 +1400,18 @@ export const getIndices = async () => {
     }
   }
   return { indices: POPULAR_INDICES };
+};
+
+export const getUSIndices = async () => {
+  if (currentBaseUrl) {
+    try {
+      const response = await api.get('/us/indices');
+      if (response.data?.indices) return response.data;
+    } catch (err) {
+      console.warn('Backend unavailable, using simulated US indices.');
+    }
+  }
+  return { indices: POPULAR_US_INDICES };
 };
 
 export const getStocksList = async () => {
@@ -1028,6 +1426,18 @@ export const getStocksList = async () => {
   return { stocks: POPULAR_STOCKS };
 };
 
+export const getUSStocksList = async () => {
+  if (currentBaseUrl) {
+    try {
+      const response = await api.get('/us/stocks/list');
+      if (response.data?.stocks) return response.data;
+    } catch (err) {
+      console.warn('Backend unavailable, using simulated US stocks list.');
+    }
+  }
+  return { stocks: POPULAR_US_STOCKS };
+};
+
 export const searchStocks = async (query) => {
   if (currentBaseUrl) {
     try {
@@ -1038,7 +1448,24 @@ export const searchStocks = async (query) => {
     }
   }
   const q = (query || '').toLowerCase();
-  const allSymbols = [...POPULAR_INDICES, ...POPULAR_STOCKS];
+  const allSymbols = [...POPULAR_INDICES, ...POPULAR_STOCKS, ...POPULAR_US_INDICES, ...POPULAR_US_STOCKS];
+  const results = allSymbols.filter(
+    s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || (s.sector && s.sector.toLowerCase().includes(q))
+  );
+  return { results };
+};
+
+export const searchUSStocks = async (query) => {
+  if (currentBaseUrl) {
+    try {
+      const response = await api.get(`/us/stocks/search?q=${encodeURIComponent(query)}`);
+      if (response.data) return response.data;
+    } catch (err) {
+      console.warn('Backend unavailable, using simulated US stock search.');
+    }
+  }
+  const q = (query || '').toLowerCase();
+  const allSymbols = [...POPULAR_US_INDICES, ...POPULAR_US_STOCKS];
   const results = allSymbols.filter(
     s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || (s.sector && s.sector.toLowerCase().includes(q))
   );
@@ -1055,12 +1482,27 @@ export const analyzeStock = async (request) => {
     }
   }
 
-  // Find exact stock or index
-  const allSymbols = [...POPULAR_INDICES, ...POPULAR_STOCKS];
+  // Find exact stock or index across Indian and US markets
+  const allSymbols = [...POPULAR_INDICES, ...POPULAR_STOCKS, ...POPULAR_US_INDICES, ...POPULAR_US_STOCKS];
   const symbolUpper = (request.symbol || '').toUpperCase();
   const foundStock = allSymbols.find(s => s.symbol.toUpperCase() === symbolUpper) || POPULAR_STOCKS[0];
 
-  const currencyRate = request.currency === 'USD' ? 0.012 : request.currency === 'EUR' ? 0.011 : 1;
+  const isUSStock = foundStock.currency === 'USD' || 
+    ['NASDAQ', 'NYSE', 'NYSE Arca', 'US Index', 'NASDAQ Index', 'NYSE Index'].includes(foundStock.exchange) ||
+    request.currency === 'USD';
+
+  const defaultCurrency = isUSStock ? 'USD' : 'INR';
+  const resolvedCurrency = request.currency || defaultCurrency;
+
+  let currencyRate = 1;
+  if (!isUSStock) {
+    if (resolvedCurrency === 'USD') currencyRate = 0.012;
+    else if (resolvedCurrency === 'EUR') currencyRate = 0.011;
+  } else {
+    if (resolvedCurrency === 'INR') currencyRate = 84.0;
+    else if (resolvedCurrency === 'EUR') currencyRate = 0.92;
+  }
+
   const ltp = parseFloat((foundStock.price * currencyRate).toFixed(2));
   const change = parseFloat((foundStock.change * currencyRate).toFixed(2));
   const changePercent = foundStock.change_percent;
@@ -1100,7 +1542,32 @@ export const analyzeStock = async (request) => {
 
   const stockSymbol = foundStock.symbol;
 
-  const mockNews = [
+  const mockNews = isUSStock ? [
+    {
+      title: `${stockSymbol} reports robust growth driven by AI compute & cloud infrastructure`,
+      source: 'Bloomberg Markets / Wall Street Journal',
+      published_at: '45 mins ago',
+      sentiment: isBullish ? 'Positive' : 'Neutral',
+    },
+    {
+      title: `Institutional hedge fund positioning increases substantially in ${foundStock.name}`,
+      source: 'CNBC / Reuters US',
+      published_at: '2 hours ago',
+      sentiment: 'Positive',
+    },
+    {
+      title: `Federal Reserve economic outlook and tech earnings provide strong macro support`,
+      source: 'Financial Times / MarketWatch',
+      published_at: '4 hours ago',
+      sentiment: isBullish ? 'Positive' : 'Neutral',
+    },
+    {
+      title: `Wall Street consensus maintains '${signal}' rating with upgraded 12-month price targets`,
+      source: 'Barron’s Intelligence',
+      published_at: '6 hours ago',
+      sentiment: 'Neutral',
+    },
+  ] : [
     {
       title: `${stockSymbol} reports robust quarterly performance with margin expansion`,
       source: 'Bloomberg Quint / ET Markets',
@@ -1130,11 +1597,11 @@ export const analyzeStock = async (request) => {
   return {
     symbol: foundStock.symbol,
     name: foundStock.name,
-    exchange: foundStock.exchange || 'NSE',
-    sector: foundStock.sector || 'Equities',
-    market_status: checkMarketStatusMock(),
+    exchange: foundStock.exchange || (isUSStock ? 'NASDAQ' : 'NSE'),
+    sector: foundStock.sector || (isUSStock ? 'US Equities' : 'Equities'),
+    market_status: isUSStock ? checkUSMarketStatusMock() : checkMarketStatusMock(),
     realtime: !!request.realtime,
-    currency: request.currency || 'INR',
+    currency: resolvedCurrency,
     current_price: lastClose,
     ltp: lastClose,
     change: change,
@@ -1142,9 +1609,9 @@ export const analyzeStock = async (request) => {
     high: high,
     low: low,
     prev_close: prevClose,
-    volume: foundStock.volume || '5.2M',
-    market_cap: foundStock.market_cap || '₹5.0 Lakh Cr',
-    pe_ratio: foundStock.pe_ratio || 24.5,
+    volume: foundStock.volume || (isUSStock ? '25.4M' : '5.2M'),
+    market_cap: foundStock.market_cap || (isUSStock ? '$1.5 Trillion' : '₹5.0 Lakh Cr'),
+    pe_ratio: foundStock.pe_ratio || 28.5,
     week_52_high: foundStock.week_52_high || parseFloat((lastClose * 1.18).toFixed(2)),
     week_52_low: foundStock.week_52_low || parseFloat((lastClose * 0.78).toFixed(2)),
     technical_indicators: {

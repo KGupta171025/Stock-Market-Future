@@ -9,6 +9,7 @@ import './App.css';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
+import USStocksPage from './pages/USStocksPage';
 import AnalysisPage from './pages/AnalysisPage';
 import MutualFundsPage from './pages/MutualFundsPage';
 
@@ -31,6 +32,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/us-stocks"
+            element={
+              <PrivateRoute>
+                <USStocksPage />
               </PrivateRoute>
             }
           />

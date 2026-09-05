@@ -1433,24 +1433,28 @@ export default function MutualFundsPage() {
       <header className="border-b bg-white dark:bg-slate-900 sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 py-3.5 flex justify-between items-center flex-wrap gap-3">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="h-4 w-4 mr-1.5" />
-              Dashboard
-            </Button>
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
               <div className="p-2 bg-primary/10 rounded-xl">
                 <TrendingUp className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-xl font-bold tracking-tight">Stock Market Future</h1>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight">Stock Market Future</h1>
+                <p className="text-[10px] text-muted-foreground font-medium hidden sm:block">AI-Powered Global Equity & Fund Intelligence</p>
+              </div>
             </div>
-            <nav className="hidden md:flex items-center gap-2 ml-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-                Dashboard
+            <nav className="hidden md:flex items-center gap-1.5 ml-3">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="text-muted-foreground hover:text-foreground">
+                🇮🇳 IND Stocks
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/us-stocks')} className="text-muted-foreground hover:text-foreground">
+                🇺🇸 US Stocks
               </Button>
               <Button variant="secondary" size="sm" onClick={() => navigate('/mutual-funds')} className="font-semibold">
+                <Layers className="h-4 w-4 mr-1.5" />
                 Mutual Funds
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/analysis')}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/analysis')} className="text-muted-foreground hover:text-foreground">
+                <BarChart3 className="h-4 w-4 mr-1.5" />
                 Stock Analysis
               </Button>
             </nav>

@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { analyzeStock, getMarketStatus, getStocksList, getIndices } from '../services/api';
+import { analyzeStock, getMarketStatus, getStocksList, getIndices, getUSStocksList, getUSIndices, getUSMarketStatus } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Switch } from '../components/ui/switch';
-import { ArrowLeft, TrendingUp, TrendingDown, Clock, Newspaper, BarChart3, LogOut, RefreshCw, AlertCircle, Target, ShieldAlert, Cpu, Gauge, Zap } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Clock, Newspaper, BarChart3, LogOut, RefreshCw, AlertCircle, Target, ShieldAlert, Cpu, Gauge, Zap, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { createChart, CandlestickSeries, LineSeries, ColorType } from 'lightweight-charts';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,7 +24,10 @@ export default function AnalysisPage() {
   const [timeframe, setTimeframe] = useState('1day');
   const [realtime, setRealtime] = useState(false);
   const [chartType, setChartType] = useState('candlestick');
-  const [currency, setCurrency] = useState('INR');
+  const [currency, setCurrency] = useState(
+    location.state?.stock?.currency ||
+    (location.state?.stock?.exchange === 'NASDAQ' || location.state?.stock?.exchange === 'NYSE' ? 'USD' : 'INR')
+  );
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [marketStatus, setMarketStatus] = useState(null);
@@ -37,13 +40,17 @@ export default function AnalysisPage() {
 
   const loadStocks = async () => {
     try {
-      const [stocksData, indicesData] = await Promise.all([
+      const [stocksData, indicesData, usStocksData, usIndicesData] = await Promise.all([
         getStocksList(),
-        getIndices()
+        getIndices(),
+        getUSStocksList(),
+        getUSIndices()
       ]);
       const combined = [
         ...(indicesData?.indices || []),
-        ...(stocksData?.stocks || [])
+        ...(stocksData?.stocks || []),
+        ...(usIndicesData?.indices || []),
+        ...(usStocksData?.stocks || [])
       ];
       if (combined.length) {
         setStockList(combined);
@@ -127,6 +134,11 @@ export default function AnalysisPage() {
   const handleStockChange = (symbol) => {
     const found = stockList.find(s => s.symbol === symbol) || { symbol, name: symbol, exchange: 'NSE' };
     setStock(found);
+    if (found.currency === 'USD' || found.exchange === 'NASDAQ' || found.exchange === 'NYSE') {
+      setCurrency('USD');
+    } else if (found.currency === 'INR' || found.exchange === 'NSE' || found.exchange === 'BSE') {
+      setCurrency('INR');
+    }
   };
 
   const handleLogout = async () => {
@@ -285,12 +297,20 @@ export default function AnalysisPage() {
                 <h1 className="text-lg font-bold tracking-tight hidden sm:inline">Stock Market Future</h1>
               </div>
 
-              <nav className="hidden md:flex items-center gap-2 ml-2">
-                <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-                  Dashboard
+              <nav className="hidden md:flex items-center gap-1.5 ml-2">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="text-muted-foreground hover:text-foreground">
+                  🇮🇳 IND Stocks
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/mutual-funds')}>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/us-stocks')} className="text-muted-foreground hover:text-foreground">
+                  🇺🇸 US Stocks
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/mutual-funds')} className="text-muted-foreground hover:text-foreground">
+                  <Layers className="h-4 w-4 mr-1.5" />
                   Mutual Funds
+                </Button>
+                <Button variant="secondary" size="sm" className="font-semibold" onClick={() => navigate('/analysis')}>
+                  <BarChart3 className="h-4 w-4 mr-1.5" />
+                  Stock Analysis
                 </Button>
               </nav>
             </div>
@@ -308,13 +328,13 @@ export default function AnalysisPage() {
           <div className="flex items-center justify-between gap-4 py-2 border-t border-border/40 flex-wrap">
             <div className="flex items-center gap-3">
               <Select value={stock?.symbol || 'RELIANCE'} onValueChange={handleStockChange}>
-                <SelectTrigger className="w-64 font-bold text-base bg-white dark:bg-slate-800">
+                <SelectTrigger className="w-72 font-bold text-base bg-white dark:bg-slate-800">
                   <SelectValue placeholder="Select Stock / Index" />
                 </SelectTrigger>
                 <SelectContent className="max-h-80">
                   {stockList.map(s => (
-                    <SelectItem key={s.symbol} value={s.symbol}>
-                      <span className="font-semibold">{s.symbol}</span> - <span className="text-xs text-muted-foreground">{s.name}</span>
+                    <SelectItem key={`${s.exchange || ''}-${s.symbol}`} value={s.symbol}>
+                      <span className="font-semibold">{s.symbol}</span> - <span className="text-xs text-muted-foreground">{s.name} ({s.exchange || 'NSE'})</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -512,30 +532,30 @@ export default function AnalysisPage() {
                     <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-border/50">
                       <span className="text-xs text-muted-foreground block font-medium">20 EMA / 50 EMA</span>
                       <span className="text-sm font-bold text-slate-900 dark:text-slate-100 block">
-                        ₹{analysis.technical_indicators.ema_20}
+                        {currencySymbol}{analysis.technical_indicators.ema_20}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        ₹{analysis.technical_indicators.ema_50}
+                        {currencySymbol}{analysis.technical_indicators.ema_50}
                       </span>
                     </div>
 
                     <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-border/50">
                       <span className="text-xs text-muted-foreground block font-medium">Resistance (R1 / R2)</span>
                       <span className="text-sm font-bold text-red-600 block">
-                        ₹{analysis.technical_indicators.resistance_1}
+                        {currencySymbol}{analysis.technical_indicators.resistance_1}
                       </span>
                       <span className="text-xs text-red-500">
-                        ₹{analysis.technical_indicators.resistance_2}
+                        {currencySymbol}{analysis.technical_indicators.resistance_2}
                       </span>
                     </div>
 
                     <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-border/50">
                       <span className="text-xs text-muted-foreground block font-medium">Support (S1 / S2)</span>
                       <span className="text-sm font-bold text-green-600 block">
-                        ₹{analysis.technical_indicators.support_1}
+                        {currencySymbol}{analysis.technical_indicators.support_1}
                       </span>
                       <span className="text-xs text-green-500">
-                        ₹{analysis.technical_indicators.support_2}
+                        {currencySymbol}{analysis.technical_indicators.support_2}
                       </span>
                     </div>
                   </div>
