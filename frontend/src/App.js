@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { Toaster } from 'sonner';
@@ -44,6 +44,14 @@ function App() {
           />
           <Route
             path="/mutual-funds"
+            element={
+              <PrivateRoute>
+                <MutualFundsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/mutual-funds/:schemeCode"
             element={
               <PrivateRoute>
                 <MutualFundsPage />

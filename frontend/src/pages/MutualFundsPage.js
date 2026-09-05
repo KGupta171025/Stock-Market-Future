@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getMutualFunds, searchMutualFunds } from '../services/api';
+import { getMutualFunds, searchMutualFunds, POPULAR_MUTUAL_FUNDS } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -46,6 +46,9 @@ import {
   Scale,
   Zap,
   HelpCircle,
+  ArrowRightLeft,
+  X,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -110,7 +113,6 @@ function calculateSIP(monthlyInvest, years, returnRate) {
   };
 }
 
-// Generate realistic historical NAV points for Coin line chart
 function generateHistoricalNavData(fund, timeframe = '1Y') {
   if (!fund) return [];
   const currentNav = fund.nav || 100;
@@ -176,12 +178,7 @@ function generateHistoricalNavData(fund, timeframe = '1Y') {
   return points;
 }
 
-// -------------------------------------------------------------
-// Speedometer Radial Risk Gauge Component (Coin Zerodha Style)
-// -------------------------------------------------------------
 function RiskometerGauge({ risk = 'Very High' }) {
-  // Determine needle rotation angle:
-  // Low: -140 deg, Moderately Low: -105 deg, Moderate: -70 deg, Moderately High: -35 deg, High: 0 deg, Very High: 25 deg
   const riskMap = {
     'Low': { angle: -140, label: 'Low', color: '#22c55e', text: 'Principal will be at Low Risk' },
     'Moderately Low': { angle: -105, label: 'Moderately Low', color: '#84cc16', text: 'Principal will be at Moderately Low Risk' },
@@ -203,7 +200,6 @@ function RiskometerGauge({ risk = 'Very High' }) {
       </div>
 
       <div className="flex items-center gap-4 py-2">
-        {/* Speedometer SVG */}
         <div className="relative w-36 h-20 shrink-0">
           <svg viewBox="0 0 160 95" className="w-full h-full overflow-visible">
             <defs>
@@ -215,7 +211,6 @@ function RiskometerGauge({ risk = 'Very High' }) {
                 <stop offset="100%" stopColor="#ef4444" />
               </linearGradient>
             </defs>
-            {/* Background Arc Track */}
             <path
               d="M 15 85 A 65 65 0 0 1 145 85"
               fill="none"
@@ -223,10 +218,8 @@ function RiskometerGauge({ risk = 'Very High' }) {
               strokeWidth="14"
               strokeLinecap="round"
             />
-            {/* Center Pivot Base */}
             <circle cx="80" cy="85" r="7" fill="#1e293b" className="dark:fill-slate-200" />
             <circle cx="80" cy="85" r="3" fill="#ffffff" className="dark:fill-slate-900" />
-            {/* Needle Pointer */}
             <g transform={`rotate(${currentRisk.angle} 80 85)`}>
               <line x1="80" y1="85" x2="30" y2="85" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" className="dark:stroke-slate-100" />
               <polygon points="24,85 34,81 34,89" fill="#0f172a" className="dark:fill-slate-100" />
@@ -234,7 +227,6 @@ function RiskometerGauge({ risk = 'Very High' }) {
           </svg>
         </div>
 
-        {/* Risk Explanation */}
         <div className="flex-1 text-xs">
           <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">{currentRisk.label}</p>
           <p className="text-muted-foreground text-[11px] mt-0.5 leading-snug">
@@ -246,9 +238,6 @@ function RiskometerGauge({ risk = 'Very High' }) {
   );
 }
 
-// -------------------------------------------------------------
-// Interactive Historical NAV Chart Component (Coin Zerodha Style)
-// -------------------------------------------------------------
 function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
   const [hoverIndex, setHoverIndex] = useState(null);
   const chartRef = useRef(null);
@@ -276,19 +265,13 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
     return padding.left + (idx / (points.length - 1)) * (width - padding.left - padding.right);
   };
 
-  // Generate SVG path polyline string
   let pathD = `M ${getX(0)} ${getY(points[0].nav)}`;
   for (let i = 1; i < points.length; i++) {
     pathD += ` L ${getX(i)} ${getY(points[i].nav)}`;
   }
 
-  // Generate closed fill area under curve
   const areaD = `${pathD} L ${getX(points.length - 1)} ${height - padding.bottom} L ${getX(0)} ${height - padding.bottom} Z`;
-
-  // Y-axis grid ticks (4 steps)
   const yTicks = [0, 0.33, 0.66, 1].map(ratio => minNav + ratio * range);
-
-  // X-axis date labels (5 labels)
   const xLabels = [0, 12, 25, 37, points.length - 1].filter(idx => idx < points.length).map(idx => ({
     x: getX(idx),
     label: points[idx].date,
@@ -308,7 +291,6 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
 
   return (
     <div className="p-4 rounded-xl border bg-slate-50/50 dark:bg-slate-800/40 flex flex-col justify-between">
-      {/* Top Header of Chart */}
       <div className="flex justify-between items-center mb-1 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
@@ -320,7 +302,6 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
           </span>
         </div>
 
-        {/* Timeframe Selector Pills */}
         <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-0.5 rounded-lg border">
           {['3M', '6M', '1Y', '2Y', '5Y', 'Max'].map(tf => (
             <button
@@ -339,7 +320,6 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
         </div>
       </div>
 
-      {/* SVG Line Chart */}
       <div
         ref={chartRef}
         onMouseMove={handleMouseMove}
@@ -354,7 +334,6 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
             </linearGradient>
           </defs>
 
-          {/* Horizontal Gridlines & Y-Axis Scale Values */}
           {yTicks.map((tick, i) => {
             const y = getY(tick);
             return (
@@ -380,10 +359,8 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
             );
           })}
 
-          {/* Area Fill */}
           <path d={areaD} fill="url(#navLineGradient)" />
 
-          {/* Stroke Line */}
           <path
             d={pathD}
             fill="none"
@@ -393,7 +370,6 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
             strokeLinejoin="round"
           />
 
-          {/* X-axis Date Labels */}
           {xLabels.map((lbl, idx) => (
             <text
               key={idx}
@@ -406,7 +382,6 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
             </text>
           ))}
 
-          {/* Hover Crosshair */}
           {hoverIndex !== null && points[hoverIndex] && (
             <g>
               <line
@@ -434,29 +409,891 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
   );
 }
 
-// -------------------------------------------------------------
-// MAIN MUTUAL FUNDS PAGE
-// -------------------------------------------------------------
-export default function MutualFundsPage() {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const [funds, setFunds] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
+function MutualFundComparisonDialog({ fund1, funds, isOpen, onClose }) {
+  const [selectedFund2Code, setSelectedFund2Code] = useState(
+    funds.find(f => f.scheme_code !== fund1?.scheme_code)?.scheme_code || ''
+  );
+  const [compTimeframe, setCompTimeframe] = useState('1Y');
 
-  // Selected Fund Details Modal State
-  const [selectedFund, setSelectedFund] = useState(null);
+  const fund2 = useMemo(() => {
+    return funds.find(f => f.scheme_code === selectedFund2Code) || funds[0];
+  }, [funds, selectedFund2Code]);
+
+  const compData = useMemo(() => {
+    if (!fund1 || !fund2) return [];
+    const pts1 = generateHistoricalNavData(fund1, compTimeframe);
+    const pts2 = generateHistoricalNavData(fund2, compTimeframe);
+    if (!pts1.length || !pts2.length) return [];
+
+    const base1 = pts1[0].nav || 1;
+    const base2 = pts2[0].nav || 1;
+
+    return pts1.map((p1, idx) => {
+      const p2 = pts2[idx] || pts2[pts2.length - 1];
+      const ret1 = ((p1.nav - base1) / base1) * 100;
+      const ret2 = ((p2.nav - base2) / base2) * 100;
+      return {
+        date: p1.date,
+        fullDate: p1.fullDate,
+        return1: parseFloat(ret1.toFixed(2)),
+        return2: parseFloat(ret2.toFixed(2)),
+      };
+    });
+  }, [fund1, fund2, compTimeframe]);
+
+  if (!fund1 || !fund2) return null;
+
+  const commonHoldings = (fund1.holdings || []).filter(h1 =>
+    (fund2.holdings || []).some(h2 => h2.symbol === h1.symbol)
+  ).map(h1 => {
+    const h2 = (fund2.holdings || []).find(h => h.symbol === h1.symbol);
+    return {
+      symbol: h1.symbol,
+      name: h1.name,
+      weight1: h1.weight,
+      weight2: h2?.weight || 0,
+    };
+  });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 bg-white dark:bg-slate-900 border-border/80 rounded-2xl">
+        <DialogHeader className="pb-3 border-b border-border/60">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                <ArrowRightLeft className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold tracking-tight">
+                  Mutual Fund Comparative Analysis
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Head-to-head performance, risk profile, expense ratio, and portfolio overlap comparison
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
+          <div className="p-3.5 rounded-xl border border-emerald-500/40 bg-emerald-50/20 dark:bg-emerald-950/20 space-y-1">
+            <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">
+              Base Fund 1 (Selected)
+            </span>
+            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+              {fund1.scheme_name}
+            </h4>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{fund1.fund_house}</span> • <span className="font-mono">NAV: ₹{fund1.nav}</span>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl border border-indigo-500/40 bg-indigo-50/20 dark:bg-indigo-950/20 space-y-1">
+            <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 block">
+              Compare Against (Fund 2)
+            </span>
+            <select
+              value={selectedFund2Code}
+              onChange={(e) => setSelectedFund2Code(e.target.value)}
+              className="w-full text-xs font-semibold bg-white dark:bg-slate-900 border rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-primary text-slate-900 dark:text-slate-100"
+            >
+              {funds
+                .filter(f => f.scheme_code !== fund1.scheme_code)
+                .map(f => (
+                  <option key={f.scheme_code} value={f.scheme_code}>
+                    {f.scheme_name} ({f.category})
+                  </option>
+                ))}
+            </select>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{fund2.fund_house}</span> • <span className="font-mono">NAV: ₹{fund2.nav}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl border bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div className="flex items-center gap-4 text-xs font-semibold">
+              <div className="flex items-center gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                <span className="text-slate-900 dark:text-slate-100">{fund1.fund_house?.split(' ')[0]}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
+                <span className="text-slate-900 dark:text-slate-100">{fund2.fund_house?.split(' ')[0]}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-0.5 rounded-lg border">
+              {['3M', '6M', '1Y', '2Y', '5Y', 'Max'].map(tf => (
+                <button
+                  key={tf}
+                  type="button"
+                  onClick={() => setCompTimeframe(tf)}
+                  className={`text-[11px] px-2 py-0.5 rounded font-semibold transition-colors ${
+                    compTimeframe === tf
+                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full select-none pt-2">
+            {compData.length > 0 && (() => {
+              const w = 500;
+              const h = 170;
+              const pad = { top: 15, right: 15, bottom: 25, left: 45 };
+
+              const allVals = compData.flatMap(d => [d.return1, d.return2]);
+              const minVal = Math.min(0, ...allVals);
+              const maxVal = Math.max(10, ...allVals);
+              const rng = maxVal - minVal || 1;
+
+              const getY = (val) => h - pad.bottom - ((val - minVal) / rng) * (h - pad.top - pad.bottom);
+              const getX = (idx) => pad.left + (idx / (compData.length - 1)) * (w - pad.left - pad.right);
+
+              let path1 = `M ${getX(0)} ${getY(compData[0].return1)}`;
+              let path2 = `M ${getX(0)} ${getY(compData[0].return2)}`;
+              for (let i = 1; i < compData.length; i++) {
+                path1 += ` L ${getX(i)} ${getY(compData[i].return1)}`;
+                path2 += ` L ${getX(i)} ${getY(compData[i].return2)}`;
+              }
+
+              return (
+                <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto">
+                  {[0, 0.5, 1].map((ratio, i) => {
+                    const val = minVal + ratio * rng;
+                    const y = getY(val);
+                    return (
+                      <g key={i}>
+                        <line x1={pad.left} y1={y} x2={w - pad.right} y2={y} stroke="currentColor" className="text-slate-200 dark:text-slate-700/60" strokeDasharray="3 3" />
+                        <text x={pad.left - 6} y={y + 3} textAnchor="end" className="fill-slate-400 text-[9px] font-mono">
+                          {val >= 0 ? '+' : ''}{val.toFixed(0)}%
+                        </text>
+                      </g>
+                    );
+                  })}
+                  <path d={path1} fill="none" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" />
+                  <path d={path2} fill="none" stroke="#8b5cf6" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+              );
+            })()}
+          </div>
+        </div>
+
+        <div className="border rounded-xl overflow-hidden text-xs">
+          <div className="grid grid-cols-12 bg-slate-100 dark:bg-slate-800 p-2.5 font-bold text-slate-700 dark:text-slate-300">
+            <span className="col-span-4">Metric</span>
+            <span className="col-span-4 text-emerald-600 dark:text-emerald-400 truncate">{fund1.scheme_name.split(' - ')[0]}</span>
+            <span className="col-span-4 text-indigo-600 dark:text-indigo-400 truncate">{fund2.scheme_name.split(' - ')[0]}</span>
+          </div>
+
+          <div className="divide-y text-slate-800 dark:text-slate-200">
+            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+              <span className="col-span-4 text-muted-foreground">1-Year CAGR Return</span>
+              <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_1yr || '38.45'}%</span>
+              <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_1yr || '36.20'}%</span>
+            </div>
+            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
+              <span className="col-span-4 text-muted-foreground">3-Year CAGR Return</span>
+              <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_3yr || '24.12'}%</span>
+              <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_3yr || '22.80'}%</span>
+            </div>
+            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+              <span className="col-span-4 text-muted-foreground">5-Year CAGR Return</span>
+              <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_5yr || '19.85'}%</span>
+              <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_5yr || '18.90'}%</span>
+            </div>
+            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
+              <span className="col-span-4 text-muted-foreground">Expense Ratio</span>
+              <span className="col-span-4 font-semibold">{fund1.expense_ratio || '1.02%'}</span>
+              <span className="col-span-4 font-semibold">{fund2.expense_ratio || '0.92%'}</span>
+            </div>
+            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+              <span className="col-span-4 text-muted-foreground">AUM (Fund Size)</span>
+              <span className="col-span-4 font-semibold">{fund1.aum || '₹37,840 Cr'}</span>
+              <span className="col-span-4 font-semibold">{fund2.aum || '₹56,120 Cr'}</span>
+            </div>
+            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
+              <span className="col-span-4 text-muted-foreground">Risk Category</span>
+              <span className="col-span-4 font-semibold">{fund1.risk}</span>
+              <span className="col-span-4 font-semibold">{fund2.risk}</span>
+            </div>
+            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+              <span className="col-span-4 text-muted-foreground">Benchmark Index</span>
+              <span className="col-span-4">{fund1.benchmark}</span>
+              <span className="col-span-4">{fund2.benchmark}</span>
+            </div>
+            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
+              <span className="col-span-4 text-muted-foreground">Fund Manager</span>
+              <span className="col-span-4 font-semibold">{fund1.fund_manager}</span>
+              <span className="col-span-4 font-semibold">{fund2.fund_manager}</span>
+            </div>
+            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+              <span className="col-span-4 text-muted-foreground">Exit Load</span>
+              <span className="col-span-4">{fund1.exit_load}</span>
+              <span className="col-span-4">{fund2.exit_load}</span>
+            </div>
+          </div>
+        </div>
+
+        {commonHoldings.length > 0 && (
+          <div className="p-3.5 rounded-xl border bg-slate-50/50 dark:bg-slate-800/40 space-y-2">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+              Portfolio Holdings Overlap ({commonHoldings.length} Common Companies)
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              {commonHoldings.slice(0, 6).map((h, i) => (
+                <div key={i} className="p-2 rounded bg-white dark:bg-slate-900 border flex justify-between items-center">
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{h.name}</span>
+                  <span className="font-mono text-muted-foreground text-[11px]">
+                    <strong className="text-emerald-600">{h.weight1}%</strong> vs <strong className="text-indigo-600">{h.weight2}%</strong>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
   const [cagrTimeframe, setCagrTimeframe] = useState('1 Year');
   const [chartTimeframe, setChartTimeframe] = useState('1Y');
   const [showAllSectors, setShowAllSectors] = useState(false);
   const [showAllHoldings, setShowAllHoldings] = useState(false);
   const [watchlistFunds, setWatchlistFunds] = useState({});
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
 
-  // SIP Calculator State
-  const [sipAmount, setSipAmount] = useState(5000);
+  const [sipAmount, setSipAmount] = useState(fund.min_sip ? Math.max(fund.min_sip, 5000) : 5000);
   const [sipYears, setSipYears] = useState(5);
-  const [sipReturnRate, setSipReturnRate] = useState(15);
+  const [sipReturnRate, setSipReturnRate] = useState(() => {
+    const c = parseFloat(fund.cagr_3yr || fund.cagr_1yr || 15);
+    return isNaN(c) ? 15 : Math.min(Math.max(c, 5), 30);
+  });
+
+  const handleToggleWatchlist = (schemeCode) => {
+    setWatchlistFunds(prev => {
+      const next = { ...prev, [schemeCode]: !prev[schemeCode] };
+      toast.success(next[schemeCode] ? 'Added to Mutual Funds Watchlist' : 'Removed from Watchlist');
+      return next;
+    });
+  };
+
+  const getDisplayCagr = (f) => {
+    if (!f) return '0.00';
+    if (cagrTimeframe === '1 Year') return `+${f.cagr_1yr || '38.45'}%`;
+    if (cagrTimeframe === '3 Years') return `+${f.cagr_3yr || '24.12'}%`;
+    if (cagrTimeframe === '5 Years') return `+${f.cagr_5yr || '19.85'}%`;
+    return `+${f.cagr_all || f.cagr_3yr || '22.40'}%`;
+  };
+
+  const sipCalc = calculateSIP(sipAmount, sipYears, sipReturnRate);
+
+  return (
+    <div className="space-y-6 pb-12">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onBack} className="gap-1.5 text-xs h-8">
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to Explorer
+          </Button>
+          <div className="text-xs text-muted-foreground hidden sm:flex items-center gap-1.5">
+            <span>Mutual Funds</span>
+            <ChevronRight className="h-3 w-3" />
+            <span>{fund.category}</span>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-foreground font-semibold truncate max-w-xs">{fund.scheme_name}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant={watchlistFunds[fund.scheme_code] ? 'default' : 'outline'}
+            onClick={() => handleToggleWatchlist(fund.scheme_code)}
+            className="text-xs h-8 gap-1.5"
+          >
+            <Bookmark className="h-3.5 w-3.5" />
+            {watchlistFunds[fund.scheme_code] ? 'Watching' : 'Watchlist'}
+          </Button>
+          <Button
+            size="sm"
+            variant="default"
+            onClick={() => setIsCompareOpen(true)}
+            className="text-xs h-8 gap-1.5 bg-primary text-primary-foreground font-semibold shadow-sm"
+          >
+            <Scale className="h-3.5 w-3.5" /> Compare Fund
+          </Button>
+        </div>
+      </div>
+
+      <div className="p-5 sm:p-6 rounded-2xl border bg-white dark:bg-slate-900 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary font-black text-xl shadow-sm">
+              {fund.fund_house?.slice(0, 2).toUpperCase() || 'MF'}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                <Badge variant="secondary" className="bg-primary/10 text-primary font-semibold text-xs border-transparent">
+                  {fund.category || 'Index Funds / ETFs'}
+                </Badge>
+                <Badge variant="outline" className="text-xs font-mono">
+                  Direct • Growth
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  Code: {fund.scheme_code}
+                </Badge>
+                {fund.risk && (
+                  <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded text-xs font-medium flex items-center gap-1">
+                    <Shield className="h-3 w-3" /> {fund.risk}
+                  </span>
+                )}
+              </div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                {fund.scheme_name}
+              </h1>
+              <p className="text-xs text-muted-foreground mt-1">
+                {fund.fund_house} • Benchmark: <strong className="text-foreground">{fund.benchmark || 'NIFTY 500 TRI'}</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid grid-cols-3 w-full max-w-lg mx-auto bg-slate-100 dark:bg-slate-800 p-1">
+          <TabsTrigger value="overview" className="text-xs font-semibold flex items-center gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" /> Overview & Coin Chart
+          </TabsTrigger>
+          <TabsTrigger value="holdings" className="text-xs font-semibold flex items-center gap-1.5">
+            <PieChart className="h-3.5 w-3.5" /> Sectors & Holdings
+          </TabsTrigger>
+          <TabsTrigger value="sip" className="text-xs font-semibold flex items-center gap-1.5">
+            <Calculator className="h-3.5 w-3.5" /> SIP Calculator
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            <div className="lg:col-span-5 space-y-3.5 flex flex-col justify-between">
+              <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 flex items-center justify-between shadow-sm">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
+                    <Calendar className="h-3.5 w-3.5 text-primary" /> Current NAV (LTP)
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 mt-1 font-mono">
+                    ₹{fund.nav?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+                <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+                  (fund.change || 0) >= 0
+                    ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300'
+                    : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+                }`}>
+                  {(fund.change || 0) >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                  {(fund.change || 0) >= 0 ? '+' : ''}{fund.change?.toFixed(2)} ({(fund.change || 0) >= 0 ? '+' : ''}{fund.change_percent?.toFixed(2)}%)
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 flex items-center justify-between shadow-sm">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
+                    <TrendingUp className="h-3.5 w-3.5 text-amber-500" /> CAGR ({cagrTimeframe})
+                  </div>
+                  <div className="text-2xl font-black text-green-600 dark:text-green-400 mt-1 font-mono">
+                    {getDisplayCagr(fund)}
+                  </div>
+                </div>
+                <div>
+                  <select
+                    value={cagrTimeframe}
+                    onChange={(e) => setCagrTimeframe(e.target.value)}
+                    className="text-xs bg-slate-50 dark:bg-slate-800 border rounded-lg px-2.5 py-1.5 font-semibold focus:outline-none focus:ring-1 focus:ring-primary text-slate-800 dark:text-slate-200"
+                  >
+                    <option value="1 Year">1 Year</option>
+                    <option value="3 Years">3 Years</option>
+                    <option value="5 Years">5 Years</option>
+                    <option value="All">All / Max</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-xl border bg-white dark:bg-slate-900 shadow-sm">
+                  <span className="text-muted-foreground block text-[10px]">Min. Investment</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-bold font-mono">₹{fund.min_sip || 100}.00</strong>
+                </div>
+                <div className="p-3 rounded-xl border bg-white dark:bg-slate-900 shadow-sm">
+                  <span className="text-muted-foreground block text-[10px]">AUM (Fund Size)</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-bold font-mono">{fund.aum || '₹37,840 Cr'}</strong>
+                </div>
+                <div className="p-3 rounded-xl border bg-white dark:bg-slate-900 shadow-sm">
+                  <div className="flex items-center gap-1 text-muted-foreground text-[10px]">
+                    <span>Exit Load</span>
+                    <HelpCircle className="h-2.5 w-2.5" title={fund.exit_load} />
+                  </div>
+                  <strong className="text-slate-900 dark:text-slate-100 font-bold font-mono">{fund.exit_load_rate || '1.0%'}</strong>
+                </div>
+                <div className="p-3 rounded-xl border bg-white dark:bg-slate-900 shadow-sm">
+                  <div className="flex items-center gap-1 text-muted-foreground text-[10px]">
+                    <span>Expense Ratio</span>
+                    <HelpCircle className="h-2.5 w-2.5" />
+                  </div>
+                  <strong className="text-slate-900 dark:text-slate-100 font-bold font-mono">{fund.expense_ratio || '1.02%'}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-7">
+              <MutualFundNavChart
+                fund={fund}
+                activeTimeframe={chartTimeframe}
+                onTimeframeChange={setChartTimeframe}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <RiskometerGauge risk={fund.risk || 'Very High'} />
+
+            <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 shadow-sm flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Fund Management</span>
+                <Badge variant="outline" className="text-xs font-mono">
+                  Active AMFI Registered
+                </Badge>
+              </div>
+
+              <div className="space-y-2.5 text-xs">
+                <div className="flex justify-between items-center py-1 border-b border-border/40">
+                  <span className="text-muted-foreground">Fund House:</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-semibold">{fund.fund_house}</strong>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-border/40">
+                  <span className="text-muted-foreground">Fund Manager:</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-semibold">{fund.fund_manager || 'Rahul Baijal'}</strong>
+                </div>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground">Lock-in Period:</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-mono font-semibold">{fund.lock_in || 'N/A'}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center gap-2 pb-1 border-b border-border/60">
+              <Layers className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                Comprehensive Fund Facts & Allocation Metrics
+              </h3>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">52-Week NAV Range</span>
+                <span className="text-xs text-primary font-mono font-bold">Current: ₹{fund.nav?.toFixed(2)}</span>
+              </div>
+              <div className="relative pt-1 pb-1">
+                <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex">
+                  <div
+                    className="bg-primary h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.max(
+                          10,
+                          (((fund.nav || 100) - (fund.week_52_low || fund.nav * 0.75)) /
+                            ((fund.week_52_high || fund.nav * 1.15) - (fund.week_52_low || fund.nav * 0.75))) *
+                            100
+                        )
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between items-center text-xs text-muted-foreground mt-1.5 font-mono">
+                  <span>Low: ₹{(fund.week_52_low || fund.nav * 0.75).toFixed(2)}</span>
+                  <span>High: ₹{(fund.week_52_high || fund.nav * 1.15).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border shadow-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Asset Allocation</span>
+                <span className="text-xs text-muted-foreground">Portfolio Distribution</span>
+              </div>
+              <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex mb-2">
+                <div
+                  className="bg-blue-600 h-full transition-all"
+                  style={{ width: `${fund.asset_allocation?.equity || 97.4}%` }}
+                  title={`Equity: ${fund.asset_allocation?.equity || 97.4}%`}
+                />
+                <div
+                  className="bg-emerald-500 h-full transition-all"
+                  style={{ width: `${fund.asset_allocation?.cash || 2.6}%` }}
+                  title={`Cash & Liquidity: ${fund.asset_allocation?.cash || 2.6}%`}
+                />
+              </div>
+              <div className="flex items-center gap-5 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+                  <span>Equity: <strong>{fund.asset_allocation?.equity || 97.4}%</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  <span>Cash & Liquidity: <strong>{fund.asset_allocation?.cash || 2.6}%</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Info className="h-3.5 w-3.5 text-primary" /> Key Fund Information
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="p-3 rounded-lg border bg-white dark:bg-slate-900">
+                  <span className="text-muted-foreground block text-[10px]">AUM (Fund Size)</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-bold">{fund.aum || '₹37,840 Cr'}</strong>
+                </div>
+                <div className="p-3 rounded-lg border bg-white dark:bg-slate-900">
+                  <span className="text-muted-foreground block text-[10px]">Expense Ratio</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-bold">{fund.expense_ratio || '1.02%'}</strong>
+                </div>
+                <div className="p-3 rounded-lg border bg-white dark:bg-slate-900">
+                  <span className="text-muted-foreground block text-[10px]">Minimum SIP</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-bold">₹{fund.min_sip || 500}</strong>
+                </div>
+                <div className="p-3 rounded-lg border bg-white dark:bg-slate-900">
+                  <span className="text-muted-foreground block text-[10px]">Fund Manager</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-bold">{fund.fund_manager || 'Rahul Baijal'}</strong>
+                </div>
+                <div className="p-3 rounded-lg border bg-white dark:bg-slate-900 sm:col-span-2">
+                  <span className="text-muted-foreground block text-[10px]">Exit Load Policy</span>
+                  <strong className="text-slate-900 dark:text-slate-100 font-bold">{fund.exit_load || '1.0% if redeemed within 365 days'}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="holdings" className="space-y-6">
+          <div className="p-5 rounded-2xl border bg-white dark:bg-slate-900 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Badge variant="outline" className="text-[11px] font-semibold mb-1">
+                  Sectors
+                </Badge>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  Sectoral Allocation Breakdown
+                </h4>
+              </div>
+              <span className="text-xs text-muted-foreground">Allocation Weight</span>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {(fund.sectors || DEFAULT_SECTORS)
+                .slice(0, showAllSectors ? undefined : 5)
+                .map((sector, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-800 dark:text-slate-200 font-medium">{sector.name}</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{sector.weight}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.min(100, sector.weight * 2.8)}%`,
+                          backgroundColor: sector.color || '#7c3aed',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            {(fund.sectors || DEFAULT_SECTORS).length > 5 && (
+              <div className="pt-2 text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAllSectors(!showAllSectors)}
+                  className="text-xs text-primary font-semibold hover:bg-primary/10 gap-1 h-8"
+                >
+                  {showAllSectors ? (
+                    <>Show less <ChevronUp className="h-3.5 w-3.5" /></>
+                  ) : (
+                    <>Show all ({(fund.sectors || DEFAULT_SECTORS).length} sectors) <ChevronDown className="h-3.5 w-3.5" /></>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="p-5 rounded-2xl border bg-white dark:bg-slate-900 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Badge variant="outline" className="text-[11px] font-semibold mb-1">
+                  Companies
+                </Badge>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  Top Portfolio Stock Constituents
+                </h4>
+              </div>
+              <span className="text-xs text-muted-foreground">Weight & Action</span>
+            </div>
+
+            <div className="p-3.5 bg-primary/5 rounded-xl border border-primary/20 flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
+              <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold text-primary">Interactive Stock Deep-Dive:</span> Click <strong>"Analyze Stock →"</strong> on any company below to open its dedicated AI prediction chart, technical indicators, RSI momentum, and price target analysis!
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {(fund.holdings && fund.holdings.length > 0 ? fund.holdings : DEFAULT_HOLDINGS)
+                .slice(0, showAllHoldings ? undefined : 6)
+                .map((company, idx) => (
+                  <div
+                    key={company.symbol || idx}
+                    className="p-3 rounded-xl border border-border/60 bg-slate-50/50 dark:bg-slate-800/30 hover:border-primary/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                  >
+                    <div className="flex-1 space-y-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                          {company.name}
+                        </span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200 sm:hidden">
+                          {company.weight}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(100, company.weight * 7)}%`,
+                            backgroundColor: idx % 2 === 0 ? '#7c3aed' : '#059669',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                      <span className="font-mono font-bold text-xs text-slate-800 dark:text-slate-200 hidden sm:inline">
+                        {company.weight}%
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => onAnalyzeStock(company)}
+                        className="text-xs h-7 px-2.5 group-hover:bg-primary group-hover:text-primary-foreground transition-all gap-1 font-semibold"
+                      >
+                        Analyze Stock <ArrowUpRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            {(fund.holdings && fund.holdings.length > 6) && (
+              <div className="pt-2 text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAllHoldings(!showAllHoldings)}
+                  className="text-xs text-primary font-semibold hover:bg-primary/10 gap-1 h-8"
+                >
+                  {showAllHoldings ? (
+                    <>Show less <ChevronUp className="h-3.5 w-3.5" /></>
+                  ) : (
+                    <>Show all (10 holdings) <ChevronDown className="h-3.5 w-3.5" /></>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="sip" className="space-y-5">
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border shadow-sm space-y-5">
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Monthly Investment Amount
+                </label>
+                <div className="text-base font-black text-primary font-mono">
+                  ₹{sipAmount.toLocaleString('en-IN')}
+                </div>
+              </div>
+              <Slider
+                value={[sipAmount]}
+                min={100}
+                max={100000}
+                step={500}
+                onValueChange={(val) => setSipAmount(val[0])}
+                className="my-3"
+              />
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[1000, 2500, 5000, 10000, 25000, 50000].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setSipAmount(preset)}
+                    className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-colors ${
+                      sipAmount === preset
+                        ? 'bg-primary text-primary-foreground border-primary font-bold'
+                        : 'bg-white dark:bg-slate-900 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    ₹{preset.toLocaleString('en-IN')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Investment Time Period
+                </label>
+                <div className="text-base font-black text-slate-900 dark:text-slate-100 font-mono">
+                  {sipYears} {sipYears === 1 ? 'Year' : 'Years'}
+                </div>
+              </div>
+              <Slider
+                value={[sipYears]}
+                min={1}
+                max={25}
+                step={1}
+                onValueChange={(val) => setSipYears(val[0])}
+                className="my-3"
+              />
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[1, 3, 5, 10, 15, 20].map((yr) => (
+                  <button
+                    key={yr}
+                    type="button"
+                    onClick={() => setSipYears(yr)}
+                    className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-colors ${
+                      sipYears === yr
+                        ? 'bg-primary text-primary-foreground border-primary font-bold'
+                        : 'bg-white dark:bg-slate-900 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {yr}Y
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Expected Return Rate (p.a)
+                </label>
+                <div className="text-base font-black text-green-600 dark:text-green-400 font-mono">
+                  {sipReturnRate}%
+                </div>
+              </div>
+              <Slider
+                value={[sipReturnRate]}
+                min={5}
+                max={30}
+                step={0.5}
+                onValueChange={(val) => setSipReturnRate(val[0])}
+                className="my-3"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Fund's 3-Year Historical CAGR: <strong className="text-foreground">+{fund.cagr_3yr || 24.1}%</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 shadow-sm">
+              <span className="text-[11px] text-muted-foreground block mb-0.5 font-medium">Total Invested Amount</span>
+              <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 font-mono">
+                {formatINR(sipCalc.invested)}
+              </span>
+            </div>
+            <div className="p-4 rounded-xl border bg-green-50/50 dark:bg-green-950/30 border-green-200 dark:border-green-900/50 shadow-sm">
+              <span className="text-[11px] text-green-700 dark:text-green-300 block mb-0.5 font-medium">Estimated Wealth Gains</span>
+              <span className="text-lg sm:text-xl font-black text-green-600 dark:text-green-400 font-mono">
+                +{formatINR(sipCalc.returns)}
+              </span>
+            </div>
+            <div className="p-4 rounded-xl border bg-primary/10 border-primary/30 shadow-sm">
+              <span className="text-[11px] text-primary block mb-0.5 font-medium">Total Expected Maturity</span>
+              <span className="text-lg sm:text-xl font-black text-primary font-mono">
+                {formatINR(sipCalc.maturity)}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 p-4 rounded-xl bg-white dark:bg-slate-900 border shadow-sm">
+            <div className="flex justify-between text-xs font-semibold">
+              <span>Invested ({((sipCalc.invested / Math.max(1, sipCalc.maturity)) * 100).toFixed(0)}%)</span>
+              <span className="text-green-600 dark:text-green-400">Gains ({((sipCalc.returns / Math.max(1, sipCalc.maturity)) * 100).toFixed(0)}%)</span>
+            </div>
+            <div className="h-3 w-full bg-green-500 rounded-full overflow-hidden flex">
+              <div
+                className="bg-primary h-full transition-all"
+                style={{ width: `${(sipCalc.invested / Math.max(1, sipCalc.maturity)) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="border rounded-xl overflow-hidden text-xs shadow-sm">
+            <div className="bg-slate-100 dark:bg-slate-800 p-2.5 font-bold text-slate-700 dark:text-slate-300">
+              Milestone Wealth Projections
+            </div>
+            <div className="divide-y">
+              {[1, 3, 5, 10, 15].map((period) => {
+                const res = calculateSIP(sipAmount, period, sipReturnRate);
+                return (
+                  <div key={period} className="flex justify-between items-center p-2.5 bg-white dark:bg-slate-900">
+                    <span className="font-semibold">{period} {period === 1 ? 'Year' : 'Years'}</span>
+                    <span className="text-muted-foreground font-mono">Invested: {formatINR(res.invested)}</span>
+                    <span className="font-bold text-primary font-mono">{formatINR(res.maturity)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground italic text-center">
+            * Mutual fund investments are subject to market risks. Calculations are illustrative based on compound interest formulas and do not guarantee future returns.
+          </p>
+        </TabsContent>
+      </Tabs>
+
+      <MutualFundComparisonDialog
+        fund1={fund}
+        funds={funds}
+        isOpen={isCompareOpen}
+        onClose={() => setIsCompareOpen(false)}
+      />
+    </div>
+  );
+}
+
+export default function MutualFundsPage() {
+  const navigate = useNavigate();
+  const { schemeCode } = useParams();
+  const { user, logout } = useAuth();
+  const [funds, setFunds] = useState(POPULAR_MUTUAL_FUNDS);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchMutualFunds();
@@ -466,10 +1303,11 @@ export default function MutualFundsPage() {
     try {
       setLoading(true);
       const data = await getMutualFunds(50);
-      setFunds(data.funds || []);
+      if (data?.funds?.length) {
+        setFunds(data.funds);
+      }
     } catch (error) {
-      toast.error('Failed to fetch mutual funds');
-      console.error(error);
+      console.warn('Using local popular mutual funds fallback');
     } finally {
       setLoading(false);
     }
@@ -502,28 +1340,7 @@ export default function MutualFundsPage() {
     }
   };
 
-  const handleOpenFund = (fund) => {
-    setSelectedFund(fund);
-    setCagrTimeframe('1 Year');
-    setChartTimeframe('1Y');
-    setShowAllSectors(false);
-    setShowAllHoldings(false);
-    setSipAmount(fund.min_sip ? Math.max(fund.min_sip, 5000) : 5000);
-    setSipYears(5);
-    const cagr = parseFloat(fund.cagr_3yr || fund.cagr_1yr || 15);
-    setSipReturnRate(isNaN(cagr) ? 15 : Math.min(Math.max(cagr, 5), 30));
-  };
-
-  const handleToggleWatchlist = (schemeCode) => {
-    setWatchlistFunds(prev => {
-      const next = { ...prev, [schemeCode]: !prev[schemeCode] };
-      toast.success(next[schemeCode] ? 'Added to Mutual Funds Watchlist' : 'Removed from Watchlist');
-      return next;
-    });
-  };
-
   const handleAnalyzeHolding = (holding) => {
-    setSelectedFund(null);
     navigate('/analysis', {
       state: {
         stock: {
@@ -540,20 +1357,10 @@ export default function MutualFundsPage() {
     return (fund.category || '').toLowerCase().includes(selectedCategory.toLowerCase());
   });
 
-  const sipCalc = calculateSIP(sipAmount, sipYears, sipReturnRate);
-
-  // Dynamic CAGR based on selected dropdown
-  const getDisplayCagr = (fund) => {
-    if (!fund) return '0.00';
-    if (cagrTimeframe === '1 Year') return `+${fund.cagr_1yr || '38.45'}%`;
-    if (cagrTimeframe === '3 Years') return `+${fund.cagr_3yr || '24.12'}%`;
-    if (cagrTimeframe === '5 Years') return `+${fund.cagr_5yr || '19.85'}%`;
-    return `+${fund.cagr_all || fund.cagr_3yr || '22.40'}%`;
-  };
+  const activeSubPageFund = schemeCode ? funds.find(f => f.scheme_code === schemeCode) || funds[0] : null;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Top Header */}
       <header className="border-b bg-white dark:bg-slate-900 sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 py-3.5 flex justify-between items-center flex-wrap gap-3">
           <div className="flex items-center gap-4">
@@ -591,770 +1398,155 @@ export default function MutualFundsPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Layers className="h-6 w-6 text-primary" />
-              AMFI Mutual Funds Intelligence Explorer
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Synchronized Net Asset Values (NAV), Coin Zerodha charts, sector allocations, underlying holdings, and SIP simulator
-            </p>
-          </div>
-
-          {/* Search bar */}
-          <form onSubmit={handleSearch} className="w-full md:w-80">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search by fund name, AMC..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-white dark:bg-slate-900 text-sm"
-              />
-            </div>
-          </form>
-        </div>
-
-        {/* Category Filter Pills */}
-        <div className="flex flex-wrap gap-1.5 mb-6">
-          {CATEGORIES.map(category => (
-            <Button
-              key={category}
-              variant={selectedCategory === category ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory(category)}
-              className="text-xs h-8 px-3 rounded-full"
-            >
-              {category}
-            </Button>
-          ))}
-        </div>
-
-        {/* Funds Grid */}
-        {loading ? (
-          <div className="text-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3" />
-            <p className="text-xs text-muted-foreground">Fetching synchronized AMFI mutual fund data...</p>
-          </div>
-        ) : filteredFunds.length === 0 ? (
-          <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border p-8">
-            <p className="text-muted-foreground text-sm font-medium">No mutual funds matching your criteria.</p>
-            <Button variant="outline" size="sm" className="mt-3" onClick={() => { setSearchQuery(''); setSelectedCategory('All'); fetchMutualFunds(); }}>
-              Reset Filters
-            </Button>
-          </div>
+        {activeSubPageFund ? (
+          <MutualFundDetailView
+            fund={activeSubPageFund}
+            funds={funds}
+            onBack={() => navigate('/mutual-funds')}
+            onAnalyzeStock={handleAnalyzeHolding}
+          />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredFunds.map((fund) => {
-              const isPositive = (fund.change || 0) >= 0;
-              return (
-                <Card
-                  key={fund.scheme_code}
-                  onClick={() => handleOpenFund(fund)}
-                  className="hover:shadow-lg hover:border-primary/50 transition-all duration-200 bg-white dark:bg-slate-900 border-border/80 flex flex-col justify-between cursor-pointer group"
+          <div>
+            <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                  <Layers className="h-6 w-6 text-primary" />
+                  AMFI Mutual Funds Intelligence Explorer
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Click any mutual fund to explore its dedicated analysis sub-page, Coin Zerodha charts, sector allocations, and live comparison
+                </p>
+              </div>
+
+              <form onSubmit={handleSearch} className="w-full md:w-80">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search by fund name, AMC..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 bg-white dark:bg-slate-900 text-sm"
+                  />
+                </div>
+              </form>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 mb-6">
+              {CATEGORIES.map(category => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                  className="text-xs h-8 px-3 rounded-full"
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <CardTitle className="text-base font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                          {fund.scheme_name}
-                        </CardTitle>
-                        <p className="text-xs text-muted-foreground mt-0.5">{fund.fund_house || 'Asset Management'}</p>
-                      </div>
-                      <div className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors shrink-0">
-                        <ArrowUpRight className="h-4 w-4" />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      <Badge variant="secondary" className="text-[11px] font-semibold bg-primary/10 text-primary border-transparent">
-                        {fund.category}
-                      </Badge>
-                      {fund.risk && (
-                        <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded text-[10px] font-medium flex items-center gap-1">
-                          <Shield className="h-3 w-3" /> {fund.risk}
-                        </span>
-                      )}
-                    </div>
-                  </CardHeader>
+                  {category}
+                </Button>
+              ))}
+            </div>
 
-                  <CardContent className="pt-2">
-                    {/* NAV (LTP) and 1D Change */}
-                    <div className="flex justify-between items-baseline mb-3 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-border/40">
-                      <div>
-                        <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Current NAV (LTP)</span>
-                        <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                          ₹{fund.nav?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                        isPositive 
-                          ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
-                          : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
-                      }`}>
-                        {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                        <span>
-                          {isPositive ? '+' : ''}{fund.change?.toFixed(2)} ({isPositive ? '+' : ''}{fund.change_percent?.toFixed(2)}%)
-                        </span>
-                      </div>
-                    </div>
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3" />
+                <p className="text-xs text-muted-foreground">Fetching synchronized AMFI mutual fund data...</p>
+              </div>
+            ) : filteredFunds.length === 0 ? (
+              <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border p-8">
+                <p className="text-muted-foreground text-sm font-medium">No mutual funds matching your criteria.</p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => { setSearchQuery(''); setSelectedCategory('All'); fetchMutualFunds(); }}>
+                  Reset Filters
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredFunds.map((fund) => {
+                  const isPositive = (fund.change || 0) >= 0;
+                  return (
+                    <Card
+                      key={fund.scheme_code}
+                      onClick={() => navigate(`/mutual-funds/${fund.scheme_code}`)}
+                      className="hover:shadow-lg hover:border-primary/50 transition-all duration-200 bg-white dark:bg-slate-900 border-border/80 flex flex-col justify-between cursor-pointer group"
+                    >
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <CardTitle className="text-base font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                              {fund.scheme_name}
+                            </CardTitle>
+                            <p className="text-xs text-muted-foreground mt-0.5">{fund.fund_house || 'Asset Management'}</p>
+                          </div>
+                          <div className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors shrink-0">
+                            <ArrowUpRight className="h-4 w-4" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                          <Badge variant="secondary" className="text-[11px] font-semibold bg-primary/10 text-primary border-transparent">
+                            {fund.category}
+                          </Badge>
+                          {fund.risk && (
+                            <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded text-[10px] font-medium flex items-center gap-1">
+                              <Shield className="h-3 w-3" /> {fund.risk}
+                            </span>
+                          )}
+                        </div>
+                      </CardHeader>
 
-                    {/* Returns Grid */}
-                    <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-                      <div className="p-1.5 rounded bg-slate-50 dark:bg-slate-800/40 border border-border/40">
-                        <span className="text-[10px] text-muted-foreground block">1Y Return</span>
-                        <span className="text-xs font-bold text-green-600 dark:text-green-400">
-                          +{fund.cagr_1yr || '34.5'}%
-                        </span>
-                      </div>
-                      <div className="p-1.5 rounded bg-slate-50 dark:bg-slate-800/40 border border-border/40">
-                        <span className="text-[10px] text-muted-foreground block">3Y CAGR</span>
-                        <span className="text-xs font-bold text-green-600 dark:text-green-400">
-                          +{fund.cagr_3yr || '22.8'}%
-                        </span>
-                      </div>
-                      <div className="p-1.5 rounded bg-slate-50 dark:bg-slate-800/40 border border-border/40">
-                        <span className="text-[10px] text-muted-foreground block">AUM</span>
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          {fund.aum || '₹25,000 Cr'}
-                        </span>
-                      </div>
-                    </div>
+                      <CardContent className="pt-2">
+                        <div className="flex justify-between items-baseline mb-3 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-border/40">
+                          <div>
+                            <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Current NAV (LTP)</span>
+                            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                              ₹{fund.nav?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                            isPositive 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
+                              : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+                          }`}>
+                            {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                            <span>
+                              {isPositive ? '+' : ''}{fund.change?.toFixed(2)} ({isPositive ? '+' : ''}{fund.change_percent?.toFixed(2)}%)
+                            </span>
+                          </div>
+                        </div>
 
-                    {/* Bottom Action Bar */}
-                    <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-2 border-t border-border/40">
-                      <span>Expense: <strong className="text-slate-700 dark:text-slate-300">{fund.expense_ratio || '0.85%'}</strong></span>
-                      <span className="text-primary font-semibold flex items-center gap-1 group-hover:underline">
-                        View Details & SIP <ChevronRight className="h-3 w-3" />
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                        <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+                          <div className="p-1.5 rounded bg-slate-50 dark:bg-slate-800/40 border border-border/40">
+                            <span className="text-[10px] text-muted-foreground block">1Y Return</span>
+                            <span className="text-xs font-bold text-green-600 dark:text-green-400">
+                              +{fund.cagr_1yr || '34.5'}%
+                            </span>
+                          </div>
+                          <div className="p-1.5 rounded bg-slate-50 dark:bg-slate-800/40 border border-border/40">
+                            <span className="text-[10px] text-muted-foreground block">3Y CAGR</span>
+                            <span className="text-xs font-bold text-green-600 dark:text-green-400">
+                              +{fund.cagr_3yr || '22.8'}%
+                            </span>
+                          </div>
+                          <div className="p-1.5 rounded bg-slate-50 dark:bg-slate-800/40 border border-border/40">
+                            <span className="text-[10px] text-muted-foreground block">AUM</span>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                              {fund.aum || '₹25,000 Cr'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-2 border-t border-border/40">
+                          <span>Expense: <strong className="text-slate-700 dark:text-slate-300">{fund.expense_ratio || '0.85%'}</strong></span>
+                          <span className="text-primary font-semibold flex items-center gap-1 group-hover:underline">
+                            Open Analysis Sub-Page <ChevronRight className="h-3 w-3" />
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </main>
-
-      {/* ========================================================================= */}
-      {/* COIN ZERODHA INSPIRED INTERACTIVE MUTUAL FUND DETAILS & ANALYTICS MODAL */}
-      {/* ========================================================================= */}
-      <Dialog open={!!selectedFund} onOpenChange={(open) => !open && setSelectedFund(null)}>
-        {selectedFund && (
-          <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-7 bg-white dark:bg-slate-900 border-border/80 rounded-2xl">
-            {/* Top Identity Header */}
-            <DialogHeader className="pb-4 border-b border-border/60">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  {/* Fund House Avatar Icon */}
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary font-black text-lg shadow-sm">
-                    {selectedFund.fund_house?.slice(0, 2).toUpperCase() || 'MF'}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <Badge variant="secondary" className="bg-primary/10 text-primary font-semibold text-xs border-transparent">
-                        {selectedFund.category || 'Index Funds / ETFs'}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs font-mono">
-                        Direct • Growth
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        Code: {selectedFund.scheme_code}
-                      </Badge>
-                    </div>
-                    <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-snug">
-                      {selectedFund.scheme_name}
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                      {selectedFund.fund_house} • Benchmark: <strong className="text-foreground">{selectedFund.benchmark || 'NIFTY 500 TRI'}</strong>
-                    </DialogDescription>
-                  </div>
-                </div>
-
-                {/* Watchlist & Compare Quick Actions */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    size="sm"
-                    variant={watchlistFunds[selectedFund.scheme_code] ? 'default' : 'outline'}
-                    onClick={() => handleToggleWatchlist(selectedFund.scheme_code)}
-                    className="text-xs h-8 gap-1.5"
-                  >
-                    <Bookmark className="h-3.5 w-3.5" />
-                    {watchlistFunds[selectedFund.scheme_code] ? 'Watching' : 'Watchlist'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => toast.info(`Comparing ${selectedFund.scheme_name} with Category Benchmark`)}
-                    className="text-xs h-8 gap-1.5"
-                  >
-                    <Scale className="h-3.5 w-3.5" /> Compare
-                  </Button>
-                </div>
-              </div>
-            </DialogHeader>
-
-            {/* Modal Navigation Tabs */}
-            <Tabs defaultValue="overview" className="mt-4">
-              <TabsList className="grid grid-cols-3 w-full max-w-lg mx-auto mb-5 bg-slate-100 dark:bg-slate-800 p-1">
-                <TabsTrigger value="overview" className="text-xs font-semibold flex items-center gap-1.5">
-                  <BarChart3 className="h-3.5 w-3.5" /> Overview & Coin Chart
-                </TabsTrigger>
-                <TabsTrigger value="holdings" className="text-xs font-semibold flex items-center gap-1.5">
-                  <PieChart className="h-3.5 w-3.5" /> Sectors & Holdings
-                </TabsTrigger>
-                <TabsTrigger value="sip" className="text-xs font-semibold flex items-center gap-1.5">
-                  <Calculator className="h-3.5 w-3.5" /> SIP Calculator
-                </TabsTrigger>
-              </TabsList>
-
-              {/* ========================================================================= */}
-              {/* TAB 1: OVERVIEW & COIN ZERODHA EXPERIENCE */}
-              {/* ========================================================================= */}
-              <TabsContent value="overview" className="space-y-6">
-                {/* 1. Coin Zerodha Top Section: Left cards + Right Line Chart */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-                  {/* Left Column (5 Cols) */}
-                  <div className="lg:col-span-5 space-y-3.5 flex flex-col justify-between">
-                    {/* Current NAV Card */}
-                    <div className="p-3.5 rounded-xl border bg-slate-50/60 dark:bg-slate-800/40 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
-                          <Calendar className="h-3.5 w-3.5 text-primary" /> Current NAV
-                        </div>
-                        <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 mt-1 font-mono">
-                          ₹{selectedFund.nav?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </div>
-                      </div>
-                      <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
-                        (selectedFund.change || 0) >= 0
-                          ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300'
-                          : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
-                      }`}>
-                        {(selectedFund.change || 0) >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                        {(selectedFund.change || 0) >= 0 ? '+' : ''}{selectedFund.change?.toFixed(2)} ({(selectedFund.change || 0) >= 0 ? '+' : ''}{selectedFund.change_percent?.toFixed(2)}%)
-                      </div>
-                    </div>
-
-                    {/* CAGR Card with Dropdown Selector */}
-                    <div className="p-3.5 rounded-xl border bg-slate-50/60 dark:bg-slate-800/40 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
-                          <Calendar className="h-3.5 w-3.5 text-amber-500" /> CAGR ({cagrTimeframe})
-                        </div>
-                        <div className="text-2xl font-black text-green-600 dark:text-green-400 mt-1 font-mono">
-                          {getDisplayCagr(selectedFund)}
-                        </div>
-                      </div>
-                      <div>
-                        <select
-                          value={cagrTimeframe}
-                          onChange={(e) => setCagrTimeframe(e.target.value)}
-                          className="text-xs bg-white dark:bg-slate-900 border rounded-lg px-2.5 py-1.5 font-semibold focus:outline-none focus:ring-1 focus:ring-primary text-slate-800 dark:text-slate-200"
-                        >
-                          <option value="1 Year">1 Year</option>
-                          <option value="3 Years">3 Years</option>
-                          <option value="5 Years">5 Years</option>
-                          <option value="All">All / Max</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Key Metrics 2x2 Grid */}
-                    <div className="grid grid-cols-2 gap-2.5 text-xs">
-                      <div className="p-2.5 rounded-lg border bg-white dark:bg-slate-900">
-                        <span className="text-muted-foreground block text-[10px]">Min. Investment</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-bold font-mono">₹{selectedFund.min_sip || 100}.00</strong>
-                      </div>
-                      <div className="p-2.5 rounded-lg border bg-white dark:bg-slate-900">
-                        <span className="text-muted-foreground block text-[10px]">AUM</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-bold font-mono">{selectedFund.aum || '₹37,840 Cr'}</strong>
-                      </div>
-                      <div className="p-2.5 rounded-lg border bg-white dark:bg-slate-900">
-                        <div className="flex items-center gap-1 text-muted-foreground text-[10px]">
-                          <span>Exit Load</span>
-                          <HelpCircle className="h-2.5 w-2.5" title={selectedFund.exit_load} />
-                        </div>
-                        <strong className="text-slate-900 dark:text-slate-100 font-bold font-mono">{selectedFund.exit_load_rate || '1.0%'}</strong>
-                      </div>
-                      <div className="p-2.5 rounded-lg border bg-white dark:bg-slate-900">
-                        <div className="flex items-center gap-1 text-muted-foreground text-[10px]">
-                          <span>Expense Ratio</span>
-                          <HelpCircle className="h-2.5 w-2.5" />
-                        </div>
-                        <strong className="text-slate-900 dark:text-slate-100 font-bold font-mono">{selectedFund.expense_ratio || '1.02%'}</strong>
-                      </div>
-                    </div>
-
-                    {/* Buy / SIP Action Buttons (Coin Zerodha Style) */}
-                    <div className="grid grid-cols-2 gap-2.5 pt-1">
-                      <Button
-                        variant="outline"
-                        onClick={() => toast.success(`Simulating Lumpsum Buy for ${selectedFund.scheme_name}`)}
-                        className="w-full font-bold text-xs h-9 bg-white dark:bg-slate-900 hover:bg-slate-100"
-                      >
-                        Buy (Lumpsum)
-                      </Button>
-                      <Button
-                        variant="default"
-                        onClick={() => {
-                          const tabBtn = document.querySelector('button[value="sip"]');
-                          if (tabBtn) tabBtn.click();
-                        }}
-                        className="w-full font-bold text-xs h-9 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
-                      >
-                        SIP (Monthly)
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Historical NAV Line Chart (7 Cols) */}
-                  <div className="lg:col-span-7">
-                    <MutualFundNavChart
-                      fund={selectedFund}
-                      activeTimeframe={chartTimeframe}
-                      onTimeframeChange={setChartTimeframe}
-                    />
-                  </div>
-                </div>
-
-                {/* 2. Middle Section: Riskometer Gauge + Management Info (Coin Zerodha Image C) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <RiskometerGauge risk={selectedFund.risk || 'Very High'} />
-
-                  <div className="p-4 rounded-xl border bg-slate-50/60 dark:bg-slate-800/40 flex flex-col justify-between space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Fund Management</span>
-                      <Badge variant="outline" className="text-xs font-mono">
-                        Active AMFI Registered
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between items-center py-1 border-b border-border/40">
-                        <span className="text-muted-foreground">Fund House:</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-semibold">{selectedFund.fund_house}</strong>
-                      </div>
-                      <div className="flex justify-between items-center py-1 border-b border-border/40">
-                        <span className="text-muted-foreground">Fund Manager:</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-semibold">{selectedFund.fund_manager || 'Lead Portfolio Team'}</strong>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-muted-foreground">Lock-in Period:</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-mono font-semibold">{selectedFund.lock_in || 'N/A'}</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Previous Detailed Sections Specifically Requested By User */}
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center gap-2 pb-1 border-b border-border/60">
-                    <Layers className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
-                      Comprehensive Fund Analysis & Facts
-                    </h3>
-                  </div>
-
-                  {/* 52-Week NAV Range */}
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">52-Week NAV Range</span>
-                      <span className="text-xs text-primary font-mono font-bold">Current: ₹{selectedFund.nav?.toFixed(2)}</span>
-                    </div>
-                    <div className="relative pt-1 pb-1">
-                      <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex">
-                        <div
-                          className="bg-primary h-full rounded-full transition-all"
-                          style={{
-                            width: `${Math.min(
-                              100,
-                              Math.max(
-                                10,
-                                (((selectedFund.nav || 100) - (selectedFund.week_52_low || selectedFund.nav * 0.75)) /
-                                  ((selectedFund.week_52_high || selectedFund.nav * 1.15) - (selectedFund.week_52_low || selectedFund.nav * 0.75))) *
-                                  100
-                              )
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-muted-foreground mt-1.5 font-mono">
-                        <span>Low: ₹{(selectedFund.week_52_low || selectedFund.nav * 0.75).toFixed(2)}</span>
-                        <span>High: ₹{(selectedFund.week_52_high || selectedFund.nav * 1.15).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Asset Allocation */}
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Asset Allocation</span>
-                      <span className="text-xs text-muted-foreground">Portfolio Distribution</span>
-                    </div>
-                    <div className="h-3 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex mb-2">
-                      <div
-                        className="bg-blue-600 h-full transition-all"
-                        style={{ width: `${selectedFund.asset_allocation?.equity || 97.4}%` }}
-                        title={`Equity: ${selectedFund.asset_allocation?.equity || 97.4}%`}
-                      />
-                      <div
-                        className="bg-emerald-500 h-full transition-all"
-                        style={{ width: `${selectedFund.asset_allocation?.cash || 2.6}%` }}
-                        title={`Cash & Liquidity: ${selectedFund.asset_allocation?.cash || 2.6}%`}
-                      />
-                    </div>
-                    <div className="flex items-center gap-5 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <div className="h-2.5 w-2.5 rounded-full bg-blue-600" />
-                        <span>Equity: <strong>{selectedFund.asset_allocation?.equity || 97.4}%</strong></span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                        <span>Cash & Liquidity: <strong>{selectedFund.asset_allocation?.cash || 2.6}%</strong></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Key Fund Information Table / Cards */}
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                      <Info className="h-3.5 w-3.5 text-primary" /> Key Fund Information
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
-                      <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-800/30">
-                        <span className="text-muted-foreground block text-[10px]">AUM (Fund Size)</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-bold">{selectedFund.aum || '₹37,840 Cr'}</strong>
-                      </div>
-                      <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-800/30">
-                        <span className="text-muted-foreground block text-[10px]">Expense Ratio</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-bold">{selectedFund.expense_ratio || '1.02%'}</strong>
-                      </div>
-                      <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-800/30">
-                        <span className="text-muted-foreground block text-[10px]">Minimum SIP</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-bold">₹{selectedFund.min_sip || 500}</strong>
-                      </div>
-                      <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-800/30">
-                        <span className="text-muted-foreground block text-[10px]">Fund Manager</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-bold">{selectedFund.fund_manager || 'Rahul Baijal'}</strong>
-                      </div>
-                      <div className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-800/30 sm:col-span-2">
-                        <span className="text-muted-foreground block text-[10px]">Exit Load Policy</span>
-                        <strong className="text-slate-900 dark:text-slate-100 font-bold">{selectedFund.exit_load || '1.0% if redeemed within 365 days'}</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* ========================================================================= */}
-              {/* TAB 2: SECTORS & COMPANIES ALLOCATION (COIN ZERODHA IMAGE C & D) */}
-              {/* ========================================================================= */}
-              <TabsContent value="holdings" className="space-y-6">
-                {/* Sector Allocation Section (Coin Image C) */}
-                <div className="p-4 rounded-xl border bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Badge variant="outline" className="text-[11px] font-semibold mb-1">
-                        Sectors
-                      </Badge>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                        Sectoral Distribution
-                      </h4>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Allocation</span>
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    {(selectedFund.sectors || DEFAULT_SECTORS)
-                      .slice(0, showAllSectors ? undefined : 5)
-                      .map((sector, idx) => (
-                        <div key={idx} className="space-y-1">
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-slate-800 dark:text-slate-200 font-medium">{sector.name}</span>
-                            <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{sector.weight}%</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{
-                                width: `${Math.min(100, sector.weight * 2.8)}%`,
-                                backgroundColor: sector.color || '#7c3aed',
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  {(selectedFund.sectors || DEFAULT_SECTORS).length > 5 && (
-                    <div className="pt-2 text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAllSectors(!showAllSectors)}
-                        className="text-xs text-primary font-semibold hover:bg-primary/10 gap-1 h-7"
-                      >
-                        {showAllSectors ? (
-                          <>Show less <ChevronUp className="h-3 w-3" /></>
-                        ) : (
-                          <>Show all ({(selectedFund.sectors || DEFAULT_SECTORS).length}) <ChevronDown className="h-3 w-3" /></>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Companies Allocation Section (Coin Image D with Direct Stock Analysis) */}
-                <div className="p-4 rounded-xl border bg-slate-50/50 dark:bg-slate-800/40 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Badge variant="outline" className="text-[11px] font-semibold mb-1">
-                        Companies
-                      </Badge>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                        Top Portfolio Stock Constituents
-                      </h4>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Weight & Action</span>
-                  </div>
-
-                  <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300">
-                    <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-semibold text-primary">Interactive Stock Deep-Dive:</span> Click <strong>"Analyze Stock →"</strong> on any company below to open its dedicated AI prediction chart, technical indicators, RSI momentum, and price target analysis!
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    {(selectedFund.holdings && selectedFund.holdings.length > 0 ? selectedFund.holdings : DEFAULT_HOLDINGS)
-                      .slice(0, showAllHoldings ? undefined : 6)
-                      .map((company, idx) => (
-                        <div
-                          key={company.symbol || idx}
-                          className="p-2.5 rounded-lg border border-border/60 bg-white dark:bg-slate-900 hover:border-primary/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
-                        >
-                          <div className="flex-1 space-y-1">
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
-                                {company.name}
-                              </span>
-                              <span className="font-mono font-bold text-slate-800 dark:text-slate-200 sm:hidden">
-                                {company.weight}%
-                              </span>
-                            </div>
-                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all"
-                                style={{
-                                  width: `${Math.min(100, company.weight * 7)}%`,
-                                  backgroundColor: idx % 2 === 0 ? '#7c3aed' : '#059669',
-                                }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                            <span className="font-mono font-bold text-xs text-slate-800 dark:text-slate-200 hidden sm:inline">
-                              {company.weight}%
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => handleAnalyzeHolding(company)}
-                              className="text-xs h-7 px-2.5 group-hover:bg-primary group-hover:text-primary-foreground transition-all gap-1"
-                            >
-                              Analyze <ArrowUpRight className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  {(selectedFund.holdings && selectedFund.holdings.length > 6) && (
-                    <div className="pt-2 text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAllHoldings(!showAllHoldings)}
-                        className="text-xs text-primary font-semibold hover:bg-primary/10 gap-1 h-7"
-                      >
-                        {showAllHoldings ? (
-                          <>Show less <ChevronUp className="h-3 w-3" /></>
-                        ) : (
-                          <>Show all (10 holdings) <ChevronDown className="h-3 w-3" /></>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              {/* ========================================================================= */}
-              {/* TAB 3: SIP WEALTH SIMULATOR */}
-              {/* ========================================================================= */}
-              <TabsContent value="sip" className="space-y-4">
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border space-y-4">
-                  {/* Monthly Investment Slider */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                        Monthly Investment Amount
-                      </label>
-                      <div className="text-base font-black text-primary font-mono">
-                        ₹{sipAmount.toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                    <Slider
-                      value={[sipAmount]}
-                      min={100}
-                      max={100000}
-                      step={500}
-                      onValueChange={(val) => setSipAmount(val[0])}
-                      className="my-3"
-                    />
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {[1000, 2500, 5000, 10000, 25000, 50000].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => setSipAmount(preset)}
-                          className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-colors ${
-                            sipAmount === preset
-                              ? 'bg-primary text-primary-foreground border-primary font-bold'
-                              : 'bg-white dark:bg-slate-900 text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          ₹{preset.toLocaleString('en-IN')}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Investment Period Slider */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                        Investment Time Period
-                      </label>
-                      <div className="text-base font-black text-slate-900 dark:text-slate-100 font-mono">
-                        {sipYears} {sipYears === 1 ? 'Year' : 'Years'}
-                      </div>
-                    </div>
-                    <Slider
-                      value={[sipYears]}
-                      min={1}
-                      max={25}
-                      step={1}
-                      onValueChange={(val) => setSipYears(val[0])}
-                      className="my-3"
-                    />
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {[1, 3, 5, 10, 15, 20].map((yr) => (
-                        <button
-                          key={yr}
-                          type="button"
-                          onClick={() => setSipYears(yr)}
-                          className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-colors ${
-                            sipYears === yr
-                              ? 'bg-primary text-primary-foreground border-primary font-bold'
-                              : 'bg-white dark:bg-slate-900 text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          {yr}Y
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Expected Return Rate Slider */}
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                        Expected Return Rate (p.a)
-                      </label>
-                      <div className="text-base font-black text-green-600 dark:text-green-400 font-mono">
-                        {sipReturnRate}%
-                      </div>
-                    </div>
-                    <Slider
-                      value={[sipReturnRate]}
-                      min={5}
-                      max={30}
-                      step={0.5}
-                      onValueChange={(val) => setSipReturnRate(val[0])}
-                      className="my-3"
-                    />
-                    <p className="text-[11px] text-muted-foreground">
-                      Fund's 3-Year Historical CAGR: <strong className="text-foreground">+{selectedFund.cagr_3yr || 24.1}%</strong>
-                    </p>
-                  </div>
-                </div>
-
-                {/* SIP Output Projection Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-[11px] text-muted-foreground block mb-0.5 font-medium">Total Invested Amount</span>
-                    <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 font-mono">
-                      {formatINR(sipCalc.invested)}
-                    </span>
-                  </div>
-                  <div className="p-3.5 rounded-xl border bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900/50">
-                    <span className="text-[11px] text-green-700 dark:text-green-300 block mb-0.5 font-medium">Estimated Wealth Gains</span>
-                    <span className="text-lg sm:text-xl font-black text-green-600 dark:text-green-400 font-mono">
-                      +{formatINR(sipCalc.returns)}
-                    </span>
-                  </div>
-                  <div className="p-3.5 rounded-xl border bg-primary/10 border-primary/30">
-                    <span className="text-[11px] text-primary block mb-0.5 font-medium">Total Expected Maturity</span>
-                    <span className="text-lg sm:text-xl font-black text-primary font-mono">
-                      {formatINR(sipCalc.maturity)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Visual Ratio Progress Bar */}
-                <div className="space-y-1.5 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span>Invested ({((sipCalc.invested / Math.max(1, sipCalc.maturity)) * 100).toFixed(0)}%)</span>
-                    <span className="text-green-600 dark:text-green-400">Gains ({((sipCalc.returns / Math.max(1, sipCalc.maturity)) * 100).toFixed(0)}%)</span>
-                  </div>
-                  <div className="h-3 w-full bg-green-500 rounded-full overflow-hidden flex">
-                    <div
-                      className="bg-primary h-full transition-all"
-                      style={{ width: `${(sipCalc.invested / Math.max(1, sipCalc.maturity)) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Milestone Projections Table */}
-                <div className="border rounded-xl overflow-hidden text-xs">
-                  <div className="bg-slate-100 dark:bg-slate-800 p-2.5 font-bold text-slate-700 dark:text-slate-300">
-                    Milestone Wealth Projections
-                  </div>
-                  <div className="divide-y">
-                    {[1, 3, 5, 10, 15].map((period) => {
-                      const res = calculateSIP(sipAmount, period, sipReturnRate);
-                      return (
-                        <div key={period} className="flex justify-between items-center p-2.5 bg-white dark:bg-slate-900">
-                          <span className="font-semibold">{period} {period === 1 ? 'Year' : 'Years'}</span>
-                          <span className="text-muted-foreground font-mono">Invested: {formatINR(res.invested)}</span>
-                          <span className="font-bold text-primary font-mono">{formatINR(res.maturity)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <p className="text-[10px] text-muted-foreground italic text-center">
-                  * Mutual fund investments are subject to market risks. Calculations are illustrative based on compound interest formulas and do not guarantee future returns.
-                </p>
-              </TabsContent>
-            </Tabs>
-          </DialogContent>
-        )}
-      </Dialog>
     </div>
   );
 }
-
