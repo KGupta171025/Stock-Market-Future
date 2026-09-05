@@ -104,10 +104,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="hidden sm:inline-flex gap-1.5" onClick={() => navigate('/us-stocks')}>
-              🇺🇸 Switch to US Stocks
-            </Button>
-            
             {marketStatus && (
               <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-border/50">
                 <div className={`w-2 h-2 rounded-full ${marketStatus.is_open ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
