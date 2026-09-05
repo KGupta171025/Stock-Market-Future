@@ -90,6 +90,30 @@ function formatINR(amount) {
   return `₹${Math.round(amount).toLocaleString('en-IN')}`;
 }
 
+export function getAvailableCagrOptions(fund) {
+  if (!fund) return [{ key: '1 Year', label: '1 Year', value: 15.0 }];
+  const options = [];
+
+  const checkAndAdd = (key, label, value) => {
+    if (value !== undefined && value !== null && value !== '' && !isNaN(Number(value))) {
+      options.push({ key, label, value: Number(value) });
+    }
+  };
+
+  checkAndAdd('1 Year', '1 Year', fund.cagr_1yr ?? fund.cagr_1y);
+  checkAndAdd('2 Years', '2 Years', fund.cagr_2yr ?? fund.cagr_2y);
+  checkAndAdd('3 Years', '3 Years', fund.cagr_3yr ?? fund.cagr_3y);
+  checkAndAdd('4 Years', '4 Years', fund.cagr_4yr ?? fund.cagr_4y);
+  checkAndAdd('5 Years', '5 Years', fund.cagr_5yr ?? fund.cagr_5y);
+  checkAndAdd('All', 'All / Max', fund.cagr_all ?? fund.cagr_since_inception);
+
+  if (options.length === 0) {
+    options.push({ key: '1 Year', label: '1 Year', value: 15.0 });
+  }
+
+  return options;
+}
+
 function calculateSIP(monthlyInvest, years, returnRate) {
   const p = Number(monthlyInvest) || 0;
   const t = Number(years) || 0;
@@ -117,6 +141,7 @@ function generateHistoricalNavData(fund, timeframe = '1Y') {
   if (!fund) return [];
   const currentNav = fund.nav || 100;
   const cagr1 = parseFloat(fund.cagr_1yr || 15) / 100;
+  const cagr2 = parseFloat(fund.cagr_2yr || fund.cagr_3yr || 18) / 100;
   const cagr3 = parseFloat(fund.cagr_3yr || 20) / 100;
   const cagr5 = parseFloat(fund.cagr_5yr || 18) / 100;
 
@@ -134,7 +159,7 @@ function generateHistoricalNavData(fund, timeframe = '1Y') {
     startNav = currentNav / (1 + cagr1);
   } else if (timeframe === '2Y') {
     numDays = 504;
-    startNav = currentNav / Math.pow(1 + cagr3, 2);
+    startNav = currentNav / Math.pow(1 + cagr2, 2);
   } else if (timeframe === '5Y' || timeframe === 'Max') {
     numDays = 750;
     startNav = currentNav / Math.pow(1 + (fund.cagr_5yr ? cagr5 : cagr3), 3.2);
@@ -594,47 +619,74 @@ function MutualFundComparisonDialog({ fund1, funds, isOpen, onClose }) {
           </div>
 
           <div className="divide-y text-slate-800 dark:text-slate-200">
+            {(fund1.cagr_1yr !== undefined || fund2.cagr_1yr !== undefined) && (
+              <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+                <span className="col-span-4 text-muted-foreground">1-Year CAGR Return</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_1yr || '38.45'}%</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_1yr || '36.20'}%</span>
+              </div>
+            )}
+            {(fund1.cagr_2yr !== undefined || fund2.cagr_2yr !== undefined) && (
+              <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
+                <span className="col-span-4 text-muted-foreground">2-Year CAGR Return</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_2yr || '29.80'}%</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_2yr || '28.50'}%</span>
+              </div>
+            )}
+            {(fund1.cagr_3yr !== undefined || fund2.cagr_3yr !== undefined) && (
+              <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+                <span className="col-span-4 text-muted-foreground">3-Year CAGR Return</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_3yr || '24.12'}%</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_3yr || '22.80'}%</span>
+              </div>
+            )}
+            {(fund1.cagr_4yr !== undefined || fund2.cagr_4yr !== undefined) && (
+              <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
+                <span className="col-span-4 text-muted-foreground">4-Year CAGR Return</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_4yr || '21.30'}%</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_4yr || '20.10'}%</span>
+              </div>
+            )}
+            {(fund1.cagr_5yr !== undefined || fund2.cagr_5yr !== undefined) && (
+              <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+                <span className="col-span-4 text-muted-foreground">5-Year CAGR Return</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_5yr || '19.85'}%</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_5yr || '18.90'}%</span>
+              </div>
+            )}
+            {(fund1.cagr_all !== undefined || fund2.cagr_all !== undefined) && (
+              <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
+                <span className="col-span-4 text-muted-foreground">All / Since Inception</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_all || '20.40'}%</span>
+                <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_all || '19.50'}%</span>
+              </div>
+            )}
             <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
-              <span className="col-span-4 text-muted-foreground">1-Year CAGR Return</span>
-              <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_1yr || '38.45'}%</span>
-              <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_1yr || '36.20'}%</span>
-            </div>
-            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
-              <span className="col-span-4 text-muted-foreground">3-Year CAGR Return</span>
-              <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_3yr || '24.12'}%</span>
-              <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_3yr || '22.80'}%</span>
-            </div>
-            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
-              <span className="col-span-4 text-muted-foreground">5-Year CAGR Return</span>
-              <span className="col-span-4 font-bold text-green-600">+{fund1.cagr_5yr || '19.85'}%</span>
-              <span className="col-span-4 font-bold text-green-600">+{fund2.cagr_5yr || '18.90'}%</span>
-            </div>
-            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
               <span className="col-span-4 text-muted-foreground">Expense Ratio</span>
               <span className="col-span-4 font-semibold">{fund1.expense_ratio || '1.02%'}</span>
               <span className="col-span-4 font-semibold">{fund2.expense_ratio || '0.92%'}</span>
             </div>
-            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
               <span className="col-span-4 text-muted-foreground">AUM (Fund Size)</span>
               <span className="col-span-4 font-semibold">{fund1.aum || '₹37,840 Cr'}</span>
               <span className="col-span-4 font-semibold">{fund2.aum || '₹56,120 Cr'}</span>
             </div>
-            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
+            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
               <span className="col-span-4 text-muted-foreground">Risk Category</span>
               <span className="col-span-4 font-semibold">{fund1.risk}</span>
               <span className="col-span-4 font-semibold">{fund2.risk}</span>
             </div>
-            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
               <span className="col-span-4 text-muted-foreground">Benchmark Index</span>
               <span className="col-span-4">{fund1.benchmark}</span>
               <span className="col-span-4">{fund2.benchmark}</span>
             </div>
-            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
+            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
               <span className="col-span-4 text-muted-foreground">Fund Manager</span>
               <span className="col-span-4 font-semibold">{fund1.fund_manager}</span>
               <span className="col-span-4 font-semibold">{fund2.fund_manager}</span>
             </div>
-            <div className="grid grid-cols-12 p-2.5 bg-white dark:bg-slate-900">
+            <div className="grid grid-cols-12 p-2.5 bg-slate-50/50 dark:bg-slate-800/30">
               <span className="col-span-4 text-muted-foreground">Exit Load</span>
               <span className="col-span-4">{fund1.exit_load}</span>
               <span className="col-span-4">{fund2.exit_load}</span>
@@ -665,12 +717,34 @@ function MutualFundComparisonDialog({ fund1, funds, isOpen, onClose }) {
 }
 
 function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
-  const [cagrTimeframe, setCagrTimeframe] = useState('1 Year');
+  const availableCagrOptions = useMemo(() => {
+    return getAvailableCagrOptions(fund);
+  }, [fund]);
+
+  const [cagrTimeframe, setCagrTimeframe] = useState(() => {
+    const opts = getAvailableCagrOptions(fund);
+    return opts[0]?.key || '1 Year';
+  });
+
   const [chartTimeframe, setChartTimeframe] = useState('1Y');
   const [showAllSectors, setShowAllSectors] = useState(false);
   const [showAllHoldings, setShowAllHoldings] = useState(false);
   const [watchlistFunds, setWatchlistFunds] = useState({});
   const [isCompareOpen, setIsCompareOpen] = useState(false);
+
+  // Sync selected timeframe if current fund options change
+  useEffect(() => {
+    if (availableCagrOptions.length > 0) {
+      const exists = availableCagrOptions.some(o => o.key === cagrTimeframe);
+      if (!exists) {
+        setCagrTimeframe(availableCagrOptions[0].key);
+      }
+    }
+  }, [availableCagrOptions, cagrTimeframe]);
+
+  const selectedCagrOption = useMemo(() => {
+    return availableCagrOptions.find(o => o.key === cagrTimeframe) || availableCagrOptions[0];
+  }, [availableCagrOptions, cagrTimeframe]);
 
   const [sipAmount, setSipAmount] = useState(fund.min_sip ? Math.max(fund.min_sip, 5000) : 5000);
   const [sipYears, setSipYears] = useState(5);
@@ -685,14 +759,6 @@ function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
       toast.success(next[schemeCode] ? 'Added to Mutual Funds Watchlist' : 'Removed from Watchlist');
       return next;
     });
-  };
-
-  const getDisplayCagr = (f) => {
-    if (!f) return '0.00';
-    if (cagrTimeframe === '1 Year') return `+${f.cagr_1yr || '38.45'}%`;
-    if (cagrTimeframe === '3 Years') return `+${f.cagr_3yr || '24.12'}%`;
-    if (cagrTimeframe === '5 Years') return `+${f.cagr_5yr || '19.85'}%`;
-    return `+${f.cagr_all || f.cagr_3yr || '22.40'}%`;
   };
 
   const sipCalc = calculateSIP(sipAmount, sipYears, sipReturnRate);
@@ -806,22 +872,25 @@ function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
               <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 flex items-center justify-between shadow-sm">
                 <div>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
-                    <TrendingUp className="h-3.5 w-3.5 text-amber-500" /> CAGR ({cagrTimeframe})
+                    <TrendingUp className="h-3.5 w-3.5 text-amber-500" /> CAGR
                   </div>
-                  <div className="text-2xl font-black text-green-600 dark:text-green-400 mt-1 font-mono">
-                    {getDisplayCagr(fund)}
+                  <div className={`text-2xl font-black mt-1 font-mono ${
+                    (selectedCagrOption?.value || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {(selectedCagrOption?.value || 0) >= 0 ? '+' : ''}{Number(selectedCagrOption?.value || 0).toFixed(2)}%
                   </div>
                 </div>
                 <div>
                   <select
                     value={cagrTimeframe}
                     onChange={(e) => setCagrTimeframe(e.target.value)}
-                    className="text-xs bg-slate-50 dark:bg-slate-800 border rounded-lg px-2.5 py-1.5 font-semibold focus:outline-none focus:ring-1 focus:ring-primary text-slate-800 dark:text-slate-200"
+                    className="text-xs bg-slate-50 dark:bg-slate-800 border rounded-lg px-2.5 py-1.5 font-semibold focus:outline-none focus:ring-1 focus:ring-primary text-slate-800 dark:text-slate-200 cursor-pointer shadow-sm"
                   >
-                    <option value="1 Year">1 Year</option>
-                    <option value="3 Years">3 Years</option>
-                    <option value="5 Years">5 Years</option>
-                    <option value="All">All / Max</option>
+                    {availableCagrOptions.map((opt) => (
+                      <option key={opt.key} value={opt.key}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
