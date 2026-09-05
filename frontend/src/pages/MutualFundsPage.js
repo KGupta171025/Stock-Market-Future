@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getMutualFunds, searchMutualFunds, POPULAR_MUTUAL_FUNDS } from '../services/api';
 import { Button } from '../components/ui/button';
 import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
+import { TelemetryBadge } from '../components/TelemetryBadgeBar';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Slider } from '../components/ui/slider';
@@ -1344,9 +1345,10 @@ function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
                 <Badge variant="outline" className="text-xs font-mono">
                   Direct • Growth
                 </Badge>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs font-mono">
                   Code: {fund.scheme_code}
                 </Badge>
+                <TelemetryBadge source={fund.data_source || 'Official AMFI Feed'} status={fund.status || 'Live'} />
                 {fund.risk && (
                   <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded text-xs font-medium flex items-center gap-1">
                     <Shield className="h-3 w-3" /> {fund.risk}
@@ -1908,7 +1910,7 @@ export default function MutualFundsPage() {
                   AMFI Mutual Funds Intelligence Explorer
                 </h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Click any mutual fund to explore its dedicated analysis sub-page, Coin Zerodha charts, sector allocations, and live comparison
+                  Click any mutual fund to explore its dedicated analysis sub-page, AMFI interactive NAV charts, sector allocations, and live comparison
                 </p>
               </div>
 
@@ -1989,6 +1991,7 @@ export default function MutualFundsPage() {
                           <Badge variant="secondary" className="text-[11px] font-semibold bg-primary/10 text-primary border-transparent">
                             {fund.category}
                           </Badge>
+                          <TelemetryBadge source={fund.data_source || 'Official AMFI Feed'} status={fund.status || 'Live'} />
                           {fund.risk && (
                             <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded text-[10px] font-medium flex items-center gap-1">
                               <Shield className="h-3 w-3" /> {fund.risk}

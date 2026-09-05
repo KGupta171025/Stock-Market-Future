@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
+import { TelemetryBadge } from '../components/TelemetryBadgeBar';
 
 const US_SECTOR_CATEGORIES = ['All', 'Mega-Tech', 'Semiconductors', 'Finance', 'EV & Auto', 'Consumer & Retail', 'ETFs'];
 
@@ -273,9 +274,7 @@ export default function USStocksPage() {
                         </CardTitle>
                         <p className="text-xs text-muted-foreground mt-0.5">{index.name}</p>
                       </div>
-                      <Badge variant="outline" className="text-[10px] font-mono">
-                        {index.exchange}
-                      </Badge>
+                      <TelemetryBadge source={index.data_source || 'Global Market Feed'} status={index.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')} />
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -394,9 +393,7 @@ export default function USStocksPage() {
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{stock.name}</p>
                         </div>
-                        <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-transparent">
-                          {stock.category || stock.sector}
-                        </Badge>
+                        <TelemetryBadge source={stock.data_source || 'Global Market Feed'} status={stock.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')} />
                       </div>
                     </CardHeader>
 

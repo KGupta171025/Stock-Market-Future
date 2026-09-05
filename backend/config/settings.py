@@ -8,7 +8,12 @@ class Settings:
     MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
     DB_NAME = os.environ.get('DB_NAME', 'test_database')
     
-    # RapidAPI
+    # Twelve Data Direct API
+    TWELVE_DATA_API_KEY = os.environ.get('TWELVE_DATA_API_KEY', '2e898475a9284e85abc48d01ad72dae2')
+    TWELVE_DATA_BASE_URL = 'https://api.twelvedata.com'
+    TWELVE_DATA_WS_URL = 'wss://ws.twelvedata.com/v1/quotes/price'
+
+    # RapidAPI Fallback
     RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')
     RAPIDAPI_HOST = "twelve-data1.p.rapidapi.com"
     

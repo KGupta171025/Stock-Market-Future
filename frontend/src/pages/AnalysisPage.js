@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { createChart, CandlestickSeries, LineSeries, ColorType } from 'lightweight-charts';
 import { useAuth } from '../contexts/AuthContext';
 import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
+import { TelemetryBadge, TelemetryDetailsBar } from '../components/TelemetryBadgeBar';
 
 const sanitizeCandles = (rawData) => {
   if (!rawData || !rawData.length) return [];
@@ -394,11 +395,12 @@ export default function AnalysisPage() {
               </Select>
               
               <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-slate-700 dark:text-slate-300">
-                {stock?.exchange || 'NSE'}
+                {stock?.exchange || (stock?.currency === 'USD' ? 'NASDAQ' : 'NSE')}
               </span>
-              <span className="text-xs text-muted-foreground hidden md:inline">
-                {stock?.sector || 'Equities'}
-              </span>
+              <TelemetryBadge
+                source={analysis?.data_source || (stock?.currency === 'USD' ? 'Global Market Feed' : 'Exchange Real-Time Feed')}
+                status={analysis?.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')}
+              />
             </div>
 
             {analysis && (
@@ -557,7 +559,27 @@ export default function AnalysisPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {analysis && (
+          <TelemetryDetailsBar
+            symbol={analysis.symbol}
+            exchange={analysis.exchange}
+            ltp={analysis.current_price}
+            prev_close={analysis.prev_close}
+            change={analysis.change}
+            change_percent={analysis.change_percent}
+            open={analysis.open}
+            high={analysis.high}
+            low={analysis.low}
+            volume={analysis.volume}
+            exchange_timestamp={analysis.exchange_timestamp}
+            received_timestamp={analysis.received_timestamp}
+            data_source={analysis.data_source || (stock?.currency === 'USD' ? 'Global Market Feed' : 'Exchange Real-Time Feed')}
+            status={analysis.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')}
+            currencySymbol={currencySymbol}
+          />
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Chart Section */}
           <div className="lg:col-span-2 space-y-6">

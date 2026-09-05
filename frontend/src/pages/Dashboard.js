@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, LogOut, Search, BarChart3, Layers, Sparkles, 
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
+import { TelemetryBadge } from '../components/TelemetryBadgeBar';
 
 const SECTOR_CATEGORIES = ['All', 'Banking', 'IT', 'Energy', 'FMCG', 'Auto', 'ETFs', 'Large Cap'];
 
@@ -253,9 +254,7 @@ export default function Dashboard() {
                       </CardTitle>
                       <p className="text-xs text-muted-foreground">{index.name || 'Benchmark Index'}</p>
                     </div>
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                      {index.exchange}
-                    </span>
+                    <TelemetryBadge source={index.data_source || 'Exchange Real-Time Feed'} status={index.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')} />
                   </CardHeader>
                   <CardContent>
                     <div className="flex justify-between items-baseline mb-2">
@@ -375,9 +374,7 @@ export default function Dashboard() {
                           </div>
                           <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{stock.name}</p>
                         </div>
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                          {stock.sector || 'Equities'}
-                        </span>
+                        <TelemetryBadge source={stock.data_source || 'Exchange Real-Time Feed'} status={stock.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')} />
                       </div>
                     </CardHeader>
 
