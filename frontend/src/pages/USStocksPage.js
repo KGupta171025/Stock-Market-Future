@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUSIndices, getUSMarketStatus, getUSStocksList } from '../services/api';
@@ -18,6 +18,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
 
 const US_SECTOR_CATEGORIES = ['All', 'Mega-Tech', 'Semiconductors', 'Finance', 'EV & Auto', 'Consumer & Retail', 'ETFs'];
 
@@ -28,29 +29,86 @@ export default function USStocksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(2000); // 2s Fast Auto-reload
+  const [isPaused, setIsPaused] = useState(false);
+  const [isSilentRefreshing, setIsSilentRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [priceFlash, setPriceFlash] = useState({});
+  const prevPricesRef = useRef({});
+  const isFetchingRef = useRef(false);
+
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
+  // Initial fetch
   useEffect(() => {
-    fetchUSDashboardData();
+    fetchUSDashboardData(false);
   }, []);
 
-  const fetchUSDashboardData = async () => {
+  // Continuous Auto-reload Interval
+  useEffect(() => {
+    if (isPaused || refreshInterval <= 0) return;
+
+    const intervalId = setInterval(() => {
+      fetchUSDashboardData(true);
+    }, refreshInterval);
+
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, isPaused]);
+
+  const fetchUSDashboardData = async (isSilent = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
+      else setIsSilentRefreshing(true);
+
       const [indicesData, statusData, stocksData] = await Promise.all([
         getUSIndices(),
         getUSMarketStatus(),
         getUSStocksList()
       ]);
-      setIndices(indicesData.indices || []);
+
+      const newIndices = indicesData.indices || [];
+      const newStocks = stocksData.stocks || [];
+
+      // Calculate micro price flashes
+      const newFlashes = {};
+      newStocks.forEach((s) => {
+        const prevPrice = prevPricesRef.current[s.symbol];
+        if (prevPrice !== undefined && prevPrice !== s.price) {
+          newFlashes[s.symbol] = s.price > prevPrice ? 'up' : 'down';
+        }
+        prevPricesRef.current[s.symbol] = s.price;
+      });
+
+      newIndices.forEach((idx) => {
+        const prevPrice = prevPricesRef.current[idx.symbol];
+        if (prevPrice !== undefined && prevPrice !== idx.price) {
+          newFlashes[idx.symbol] = idx.price > prevPrice ? 'up' : 'down';
+        }
+        prevPricesRef.current[idx.symbol] = idx.price;
+      });
+
+      if (Object.keys(newFlashes).length > 0) {
+        setPriceFlash(newFlashes);
+        setTimeout(() => setPriceFlash({}), 700);
+      }
+
+      setIndices(newIndices);
       setMarketStatus(statusData);
-      setStocks(stocksData.stocks || []);
+      setStocks(newStocks);
+      setLastUpdated(Date.now());
     } catch (error) {
-      toast.error('Failed to fetch US market data');
+      if (!isSilent) {
+        toast.error('Failed to fetch US market data');
+      }
       console.error(error);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
+      setIsSilentRefreshing(false);
+      isFetchingRef.current = false;
     }
   };
 
@@ -143,7 +201,7 @@ export default function USStocksPage() {
       <main className="container mx-auto px-4 py-6">
         {/* US Benchmark Indices Section */}
         <section className="mb-8">
-          <div className="flex justify-between items-center mb-3.5 flex-wrap gap-2">
+          <div className="flex justify-between items-center mb-3.5 flex-wrap gap-3">
             <div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200">
@@ -155,33 +213,48 @@ export default function USStocksPage() {
                 US Benchmark Indices
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Real-time Wall Street benchmark levels with Last Traded Price (LTP in USD $), intraday range, and predictive analytics
+                Real-time Wall Street benchmark levels with Last Traded Price (LTP in USD $), intraday range, and continuous live streaming
               </p>
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="text-xs px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground font-semibold transition-colors"
-              >
-                🇮🇳 IND Market
-              </button>
-              <button
-                onClick={() => navigate('/us-stocks')}
-                className="text-xs px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 text-foreground font-bold shadow-sm transition-colors"
-              >
-                🇺🇸 US Market
-              </button>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <LiveAutoRefreshBar
+                interval={refreshInterval}
+                onIntervalChange={setRefreshInterval}
+                isPaused={isPaused}
+                onTogglePause={() => setIsPaused((prev) => !prev)}
+                onManualRefresh={() => fetchUSDashboardData(false)}
+                lastUpdated={lastUpdated}
+                isRefreshing={isSilentRefreshing}
+              />
+
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="text-xs px-3 py-1 rounded-lg text-muted-foreground hover:text-foreground font-semibold transition-colors"
+                >
+                  🇮🇳 IND Market
+                </button>
+                <button
+                  onClick={() => navigate('/us-stocks')}
+                  className="text-xs px-3 py-1 rounded-lg bg-white dark:bg-slate-900 text-foreground font-bold shadow-sm transition-colors"
+                >
+                  🇺🇸 US Market
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {indices.map((index) => {
               const isPositive = index.change >= 0;
+              const flash = priceFlash[index.symbol];
               return (
                 <Card
                   key={index.symbol}
-                  className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1 group border-border/80 bg-white dark:bg-slate-900"
+                  className={`hover:shadow-lg transition-all duration-300 cursor-pointer hover:-translate-y-1 group border-border/80 bg-white dark:bg-slate-900 ${
+                    flash === 'up' ? 'ring-2 ring-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/30' : flash === 'down' ? 'ring-2 ring-rose-500 bg-rose-50/40 dark:bg-rose-950/30' : ''
+                  }`}
                   onClick={() => handleStockSelect({
                     symbol: index.symbol,
                     name: index.name || index.symbol,
@@ -207,7 +280,9 @@ export default function USStocksPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex justify-between items-baseline mb-2">
-                      <span className="text-xl font-black text-slate-900 dark:text-slate-100 font-mono">
+                      <span className={`text-xl font-black font-mono transition-colors duration-300 ${
+                        flash === 'up' ? 'text-emerald-600 dark:text-emerald-400' : flash === 'down' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'
+                      }`}>
                         ${index.price?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                       <div className={`flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -296,12 +371,15 @@ export default function USStocksPage() {
                       100
                   )
                 );
+                const flash = priceFlash[stock.symbol];
 
                 return (
                   <Card
                     key={stock.symbol}
                     onClick={() => handleStockSelect(stock)}
-                    className="hover:shadow-lg hover:border-primary/50 transition-all duration-200 bg-white dark:bg-slate-900 border-border/80 flex flex-col justify-between cursor-pointer group"
+                    className={`hover:shadow-lg hover:border-primary/50 transition-all duration-300 bg-white dark:bg-slate-900 border-border/80 flex flex-col justify-between cursor-pointer group ${
+                      flash === 'up' ? 'ring-2 ring-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/30' : flash === 'down' ? 'ring-2 ring-rose-500 bg-rose-50/40 dark:bg-rose-950/30' : ''
+                    }`}
                   >
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
@@ -326,7 +404,9 @@ export default function USStocksPage() {
                       <div className="flex justify-between items-baseline mb-3 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-border/40">
                         <div>
                           <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Last Traded Price</span>
-                          <span className="text-2xl font-black text-slate-900 dark:text-slate-100 font-mono">
+                          <span className={`text-2xl font-black font-mono transition-colors duration-300 ${
+                            flash === 'up' ? 'text-emerald-600 dark:text-emerald-400' : flash === 'down' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'
+                          }`}>
                             ${stock.price?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
                         </div>

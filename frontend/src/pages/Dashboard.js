@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getIndices, getMarketStatus, getStocksList } from '../services/api';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { TrendingUp, TrendingDown, LogOut, Search, BarChart3, Layers, Sparkles, Activity } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
+import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
 
 const SECTOR_CATEGORIES = ['All', 'Banking', 'IT', 'Energy', 'FMCG', 'Auto', 'ETFs', 'Large Cap'];
 
@@ -17,29 +18,86 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(2000); // 2s Fast Auto-reload
+  const [isPaused, setIsPaused] = useState(false);
+  const [isSilentRefreshing, setIsSilentRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [priceFlash, setPriceFlash] = useState({});
+  const prevPricesRef = useRef({});
+  const isFetchingRef = useRef(false);
+
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
+  // Initial load
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardData(false);
   }, []);
 
-  const fetchDashboardData = async () => {
+  // Continuous Auto-reload Interval
+  useEffect(() => {
+    if (isPaused || refreshInterval <= 0) return;
+
+    const intervalId = setInterval(() => {
+      fetchDashboardData(true);
+    }, refreshInterval);
+
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, isPaused]);
+
+  const fetchDashboardData = async (isSilent = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
+      else setIsSilentRefreshing(true);
+
       const [indicesData, statusData, stocksData] = await Promise.all([
         getIndices(),
         getMarketStatus(),
         getStocksList()
       ]);
-      setIndices(indicesData.indices || []);
+
+      const newIndices = indicesData.indices || [];
+      const newStocks = stocksData.stocks || [];
+
+      // Calculate micro price flashes
+      const newFlashes = {};
+      newStocks.forEach((s) => {
+        const prevPrice = prevPricesRef.current[s.symbol];
+        if (prevPrice !== undefined && prevPrice !== s.price) {
+          newFlashes[s.symbol] = s.price > prevPrice ? 'up' : 'down';
+        }
+        prevPricesRef.current[s.symbol] = s.price;
+      });
+
+      newIndices.forEach((idx) => {
+        const prevPrice = prevPricesRef.current[idx.symbol];
+        if (prevPrice !== undefined && prevPrice !== idx.price) {
+          newFlashes[idx.symbol] = idx.price > prevPrice ? 'up' : 'down';
+        }
+        prevPricesRef.current[idx.symbol] = idx.price;
+      });
+
+      if (Object.keys(newFlashes).length > 0) {
+        setPriceFlash(newFlashes);
+        setTimeout(() => setPriceFlash({}), 700);
+      }
+
+      setIndices(newIndices);
       setMarketStatus(statusData);
-      setStocks(stocksData.stocks || []);
+      setStocks(newStocks);
+      setLastUpdated(Date.now());
     } catch (error) {
-      toast.error('Failed to fetch dashboard data');
+      if (!isSilent) {
+        toast.error('Failed to fetch dashboard data');
+      }
       console.error(error);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
+      setIsSilentRefreshing(false);
+      isFetchingRef.current = false;
     }
   };
 
@@ -125,40 +183,55 @@ export default function Dashboard() {
       <main className="container mx-auto px-4 py-6" data-testid="dashboard-container">
         {/* Market Benchmark Indices Section */}
         <section className="mb-8">
-          <div className="flex justify-between items-center mb-3.5 flex-wrap gap-2">
+          <div className="flex justify-between items-center mb-3.5 flex-wrap gap-3">
             <div>
               <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
                 Indian Benchmark Indices
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Real-time benchmark levels with Last Traded Price (LTP), intraday range, and multi-timeframe analytics
+                Real-time benchmark levels with Last Traded Price (LTP), intraday range, and continuous live data streaming
               </p>
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="text-xs px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 text-foreground font-bold shadow-sm transition-colors"
-              >
-                🇮🇳 IND Market
-              </button>
-              <button
-                onClick={() => navigate('/us-stocks')}
-                className="text-xs px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground font-semibold transition-colors"
-              >
-                🇺🇸 US Market
-              </button>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <LiveAutoRefreshBar
+                interval={refreshInterval}
+                onIntervalChange={setRefreshInterval}
+                isPaused={isPaused}
+                onTogglePause={() => setIsPaused((prev) => !prev)}
+                onManualRefresh={() => fetchDashboardData(false)}
+                lastUpdated={lastUpdated}
+                isRefreshing={isSilentRefreshing}
+              />
+
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="text-xs px-3 py-1 rounded-lg bg-white dark:bg-slate-900 text-foreground font-bold shadow-sm transition-colors"
+                >
+                  🇮🇳 IND Market
+                </button>
+                <button
+                  onClick={() => navigate('/us-stocks')}
+                  className="text-xs px-3 py-1 rounded-lg text-muted-foreground hover:text-foreground font-semibold transition-colors"
+                >
+                  🇺🇸 US Market
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {indices.map((index) => {
               const isPositive = index.change >= 0;
+              const flash = priceFlash[index.symbol];
               return (
                 <Card 
                   key={index.symbol} 
-                  className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1 group border-border/80 bg-white dark:bg-slate-900"
+                  className={`hover:shadow-lg transition-all duration-300 cursor-pointer hover:-translate-y-1 group border-border/80 bg-white dark:bg-slate-900 ${
+                    flash === 'up' ? 'ring-2 ring-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/30' : flash === 'down' ? 'ring-2 ring-rose-500 bg-rose-50/40 dark:bg-rose-950/30' : ''
+                  }`}
                   onClick={() => handleStockSelect({
                     symbol: index.symbol,
                     name: index.name || index.symbol,
@@ -186,7 +259,9 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex justify-between items-baseline mb-2">
-                      <p className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50">
+                      <p className={`text-3xl font-extrabold tracking-tight transition-colors duration-300 ${
+                        flash === 'up' ? 'text-emerald-600 dark:text-emerald-400' : flash === 'down' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-50'
+                      }`}>
                         ₹{index.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </p>
                       <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -276,11 +351,14 @@ export default function Dashboard() {
                 const high = stock.high || stock.price * 1.01;
                 const low = stock.low || stock.price * 0.99;
                 const rangePercent = Math.max(0, Math.min(100, ((stock.price - low) / (high - low || 1)) * 100));
+                const flash = priceFlash[stock.symbol];
 
                 return (
                   <Card 
                     key={stock.symbol} 
-                    className="hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-1 group bg-white dark:bg-slate-900 border-border/80 flex flex-col justify-between"
+                    className={`hover:shadow-md transition-all duration-300 cursor-pointer hover:-translate-y-1 group bg-white dark:bg-slate-900 border-border/80 flex flex-col justify-between ${
+                      flash === 'up' ? 'ring-2 ring-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/30' : flash === 'down' ? 'ring-2 ring-rose-500 bg-rose-50/40 dark:bg-rose-950/30' : ''
+                    }`}
                     onClick={() => handleStockSelect(stock)}
                     data-testid={`stock-card-${stock.symbol}`}
                   >
@@ -308,7 +386,9 @@ export default function Dashboard() {
                       <div className="flex justify-between items-baseline mb-3">
                         <div>
                           <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Last Traded Price</span>
-                          <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                          <span className={`text-2xl font-bold transition-colors duration-300 ${
+                            flash === 'up' ? 'text-emerald-600 dark:text-emerald-400' : flash === 'down' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'
+                          }`}>
                             ₹{stock.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                         </div>

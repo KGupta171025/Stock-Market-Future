@@ -1396,6 +1396,30 @@ export const getUSMarketStatus = async () => {
   return checkUSMarketStatusMock();
 };
 
+// Micro-tick simulation engine for realistic ultra-fast live market feeds
+const applyLiveMicroTicks = (items) => {
+  return items.map((item) => {
+    // 70% chance of realistic micro-tick (+-0.03% to +-0.15%)
+    if (Math.random() < 0.70) {
+      const deltaPercent = (Math.random() * 0.24 - 0.12) / 100;
+      const newPrice = parseFloat(Math.max(1, item.price * (1 + deltaPercent)).toFixed(2));
+      const priceDiff = parseFloat((newPrice - item.price).toFixed(2));
+      const newChange = parseFloat(((item.change || 0) + priceDiff).toFixed(2));
+      const prevClose = item.prev_close || (item.price - (item.change || 0));
+      const newChangePercent = parseFloat(((newChange / (prevClose || 1)) * 100).toFixed(2));
+      const newHigh = Math.max(item.high || newPrice, newPrice);
+      const newLow = Math.min(item.low || newPrice, newPrice);
+
+      item.price = newPrice;
+      item.change = newChange;
+      item.change_percent = newChangePercent;
+      item.high = newHigh;
+      item.low = newLow;
+    }
+    return { ...item };
+  });
+};
+
 export const getIndices = async () => {
   if (currentBaseUrl) {
     try {
@@ -1405,7 +1429,7 @@ export const getIndices = async () => {
       console.warn('Backend unavailable, using simulated indices.');
     }
   }
-  return { indices: POPULAR_INDICES };
+  return { indices: applyLiveMicroTicks(POPULAR_INDICES) };
 };
 
 export const getUSIndices = async () => {
@@ -1417,7 +1441,7 @@ export const getUSIndices = async () => {
       console.warn('Backend unavailable, using simulated US indices.');
     }
   }
-  return { indices: POPULAR_US_INDICES };
+  return { indices: applyLiveMicroTicks(POPULAR_US_INDICES) };
 };
 
 export const getStocksList = async () => {
@@ -1429,7 +1453,7 @@ export const getStocksList = async () => {
       console.warn('Backend unavailable, using simulated stocks list.');
     }
   }
-  return { stocks: POPULAR_STOCKS };
+  return { stocks: applyLiveMicroTicks(POPULAR_STOCKS) };
 };
 
 export const getUSStocksList = async () => {
@@ -1441,7 +1465,7 @@ export const getUSStocksList = async () => {
       console.warn('Backend unavailable, using simulated US stocks list.');
     }
   }
-  return { stocks: POPULAR_US_STOCKS };
+  return { stocks: applyLiveMicroTicks(POPULAR_US_STOCKS) };
 };
 
 export const searchStocks = async (query) => {

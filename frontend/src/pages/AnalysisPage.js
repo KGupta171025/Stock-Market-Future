@@ -1,14 +1,49 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { analyzeStock, getMarketStatus, getStocksList, getIndices, getUSStocksList, getUSIndices, getUSMarketStatus } from '../services/api';
+import { analyzeStock, getMarketStatus, getStocksList, getIndices, getUSStocksList, getUSIndices } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Switch } from '../components/ui/switch';
 import { ArrowLeft, TrendingUp, TrendingDown, Clock, Newspaper, BarChart3, LogOut, RefreshCw, AlertCircle, Target, ShieldAlert, Cpu, Gauge, Zap, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { createChart, CandlestickSeries, LineSeries, ColorType } from 'lightweight-charts';
 import { useAuth } from '../contexts/AuthContext';
+import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
+
+const sanitizeCandles = (rawData) => {
+  if (!rawData || !rawData.length) return [];
+  const seenTimes = new Set();
+  const sanitizedCandles = [];
+
+  for (let i = 0; i < rawData.length; i++) {
+    const item = rawData[i];
+    let timestamp = Math.floor(new Date(item.datetime).getTime() / 1000);
+    
+    if (isNaN(timestamp) || timestamp <= 0) {
+      timestamp = Math.floor(Date.now() / 1000) - ((rawData.length - i) * 86400);
+    }
+
+    if (!seenTimes.has(timestamp)) {
+      seenTimes.add(timestamp);
+      const open = Number(item.open) || Number(item.close);
+      const close = Number(item.close);
+      const high = Math.max(Number(item.high) || close, open, close);
+      const low = Math.min(Number(item.low) || close, open, close);
+
+      sanitizedCandles.push({
+        time: timestamp,
+        open: parseFloat(open.toFixed(2)),
+        high: parseFloat(high.toFixed(2)),
+        low: parseFloat(low.toFixed(2)),
+        close: parseFloat(close.toFixed(2)),
+        value: parseFloat(close.toFixed(2)),
+      });
+    }
+  }
+
+  sanitizedCandles.sort((a, b) => a.time - b.time);
+  return sanitizedCandles;
+};
 
 export default function AnalysisPage() {
   const location = useLocation();
@@ -16,13 +51,16 @@ export default function AnalysisPage() {
   const { user, logout } = useAuth();
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
+  const seriesRef = useRef(null);
+  const chartTypeRef = useRef('candlestick');
   const resizeHandlerRef = useRef(null);
+  const isFetchingRef = useRef(false);
+  const prevPriceRef = useRef(null);
   
   const defaultStock = { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', exchange: 'NSE' };
   const [stockList, setStockList] = useState([defaultStock]);
   const [stock, setStock] = useState(location.state?.stock || defaultStock);
   const [timeframe, setTimeframe] = useState('1day');
-  const [realtime, setRealtime] = useState(false);
   const [chartType, setChartType] = useState('candlestick');
   const [currency, setCurrency] = useState(
     location.state?.stock?.currency ||
@@ -32,6 +70,11 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(false);
   const [marketStatus, setMarketStatus] = useState(null);
   const [chartError, setChartError] = useState(null);
+  const [refreshInterval, setRefreshInterval] = useState(2000); // 2s Fast Auto-reload
+  const [isPaused, setIsPaused] = useState(false);
+  const [isSilentRefreshing, setIsSilentRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [priceFlash, setPriceFlash] = useState(null);
 
   useEffect(() => {
     fetchMarketStatus();
@@ -60,12 +103,80 @@ export default function AnalysisPage() {
     }
   };
 
+  const handleAnalyze = useCallback(async (selectedStock = stock, selectedTimeframe = timeframe, selectedCurrency = currency, isSilent = false) => {
+    if (!selectedStock) return;
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
+    try {
+      if (!isSilent) {
+        setLoading(true);
+        setChartError(null);
+      } else {
+        setIsSilentRefreshing(true);
+      }
+
+      const request = {
+        symbol: selectedStock.symbol,
+        exchange: selectedStock.exchange || 'NSE',
+        timeframe: selectedTimeframe,
+        realtime: true,
+        currency: selectedCurrency,
+      };
+      
+      const result = await analyzeStock(request);
+      
+      // Calculate price flash
+      if (prevPriceRef.current !== null && prevPriceRef.current !== result.current_price) {
+        const direction = result.current_price > prevPriceRef.current ? 'up' : 'down';
+        setPriceFlash(direction);
+        setTimeout(() => setPriceFlash(null), 700);
+      }
+      prevPriceRef.current = result.current_price;
+
+      setAnalysis(result);
+      setLastUpdated(Date.now());
+
+      // If chart is already mounted, smoothly update series data
+      if (seriesRef.current && chartRef.current && isSilent && result.chart_data) {
+        const sanitized = sanitizeCandles(result.chart_data);
+        if (sanitized.length > 0) {
+          if (chartTypeRef.current === 'line') {
+            seriesRef.current.setData(sanitized.map(d => ({ time: d.time, value: d.value })));
+          } else {
+            seriesRef.current.setData(sanitized);
+          }
+        }
+      }
+    } catch (error) {
+      if (!isSilent) {
+        toast.error('Analysis failed: ' + error.message);
+      }
+      console.error(error);
+    } finally {
+      if (!isSilent) setLoading(false);
+      setIsSilentRefreshing(false);
+      isFetchingRef.current = false;
+    }
+  }, [stock, timeframe, currency]);
+
+  // Initial & Dependency-Triggered Full Analysis
   useEffect(() => {
     if (stock) {
-      handleAnalyze(stock, timeframe, currency);
+      handleAnalyze(stock, timeframe, currency, false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stock, timeframe, currency]);
+  }, [stock, timeframe, currency, handleAnalyze]);
+
+  // Continuous Auto-Reload Interval
+  useEffect(() => {
+    if (isPaused || refreshInterval <= 0 || !stock) return;
+
+    const intervalId = setInterval(() => {
+      handleAnalyze(stock, timeframe, currency, true);
+    }, refreshInterval);
+
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, isPaused, stock, timeframe, currency, handleAnalyze]);
 
   useEffect(() => {
     if (analysis && chartContainerRef.current) {
@@ -75,7 +186,7 @@ export default function AnalysisPage() {
       cleanupChart();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis, chartType]);
+  }, [analysis?.symbol, timeframe, chartType]);
 
   const cleanupChart = () => {
     if (resizeHandlerRef.current) {
@@ -89,6 +200,7 @@ export default function AnalysisPage() {
         console.warn('Error removing chart instance:', e);
       }
       chartRef.current = null;
+      seriesRef.current = null;
     }
   };
 
@@ -96,38 +208,8 @@ export default function AnalysisPage() {
     try {
       const status = await getMarketStatus();
       setMarketStatus(status);
-      if (!status.is_open) {
-        setRealtime(false);
-      }
     } catch (error) {
       console.error('Failed to fetch market status:', error);
-    }
-  };
-
-  const handleAnalyze = async (selectedStock = stock, selectedTimeframe = timeframe, selectedCurrency = currency) => {
-    if (!selectedStock) {
-      toast.error('Please select a stock or index');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setChartError(null);
-      const request = {
-        symbol: selectedStock.symbol,
-        exchange: selectedStock.exchange || 'NSE',
-        timeframe: selectedTimeframe,
-        realtime: realtime && marketStatus?.is_open,
-        currency: selectedCurrency,
-      };
-      
-      const result = await analyzeStock(request);
-      setAnalysis(result);
-    } catch (error) {
-      toast.error('Analysis failed: ' + error.message);
-      console.error(error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -190,40 +272,9 @@ export default function AnalysisPage() {
       });
 
       chartRef.current = chart;
+      chartTypeRef.current = chartType;
 
-      // Deduplicate, sort and sanitize candle data for Lightweight Charts
-      const rawData = analysis.chart_data;
-      const seenTimes = new Set();
-      const sanitizedCandles = [];
-
-      for (let i = 0; i < rawData.length; i++) {
-        const item = rawData[i];
-        let timestamp = Math.floor(new Date(item.datetime).getTime() / 1000);
-        
-        if (isNaN(timestamp) || timestamp <= 0) {
-          timestamp = Math.floor(Date.now() / 1000) - ((rawData.length - i) * 86400);
-        }
-
-        if (!seenTimes.has(timestamp)) {
-          seenTimes.add(timestamp);
-          const open = Number(item.open) || Number(item.close);
-          const close = Number(item.close);
-          const high = Math.max(Number(item.high) || close, open, close);
-          const low = Math.min(Number(item.low) || close, open, close);
-
-          sanitizedCandles.push({
-            time: timestamp,
-            open: parseFloat(open.toFixed(2)),
-            high: parseFloat(high.toFixed(2)),
-            low: parseFloat(low.toFixed(2)),
-            close: parseFloat(close.toFixed(2)),
-            value: parseFloat(close.toFixed(2)),
-          });
-        }
-      }
-
-      // Sort strictly in ascending order
-      sanitizedCandles.sort((a, b) => a.time - b.time);
+      const sanitizedCandles = sanitizeCandles(analysis.chart_data);
 
       if (sanitizedCandles.length === 0) {
         throw new Error('No valid price points available to render');
@@ -241,6 +292,7 @@ export default function AnalysisPage() {
           },
         });
         lineSeries.setData(sanitizedCandles.map(d => ({ time: d.time, value: d.value })));
+        seriesRef.current = lineSeries;
       } else {
         const candleSeries = chart.addSeries(CandlestickSeries, {
           upColor: '#10B981',
@@ -255,6 +307,7 @@ export default function AnalysisPage() {
           },
         });
         candleSeries.setData(sanitizedCandles);
+        seriesRef.current = candleSeries;
       }
 
       chart.timeScale().fitContent();
@@ -352,7 +405,9 @@ export default function AnalysisPage() {
               <div className="flex items-center gap-4 flex-wrap">
                 <div className="text-right">
                   <span className="text-xs text-muted-foreground block font-medium">LTP (Last Traded Price)</span>
-                  <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
+                  <span className={`text-2xl font-extrabold transition-colors duration-300 ${
+                    priceFlash === 'up' ? 'text-emerald-600 dark:text-emerald-400' : priceFlash === 'down' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'
+                  }`}>
                     {currencySymbol}{analysis.current_price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -402,32 +457,63 @@ export default function AnalysisPage() {
           )}
 
           {/* Control Bar */}
-          <div className="flex flex-wrap gap-3 items-center pt-2.5 border-t border-border/40">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground font-medium">Timeframe:</span>
-              <Select value={timeframe} onValueChange={setTimeframe}>
-                <SelectTrigger className="w-32 h-8 text-xs bg-white dark:bg-slate-800" data-testid="timeframe-selector">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1min">1 Minute</SelectItem>
-                  <SelectItem value="5min">5 Minutes</SelectItem>
-                  <SelectItem value="15min">15 Minutes</SelectItem>
-                  <SelectItem value="1h">1 Hour</SelectItem>
-                  <SelectItem value="1day">1 Day</SelectItem>
-                  <SelectItem value="1week">1 Week</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="flex flex-wrap gap-3 items-center justify-between pt-2.5 border-t border-border/40">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground font-medium">Timeframe:</span>
+                <Select value={timeframe} onValueChange={setTimeframe}>
+                  <SelectTrigger className="w-32 h-8 text-xs bg-white dark:bg-slate-800" data-testid="timeframe-selector">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1min">1 Minute</SelectItem>
+                    <SelectItem value="5min">5 Minutes</SelectItem>
+                    <SelectItem value="15min">15 Minutes</SelectItem>
+                    <SelectItem value="1h">1 Hour</SelectItem>
+                    <SelectItem value="1day">1 Day</SelectItem>
+                    <SelectItem value="1week">1 Week</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground font-medium">Chart:</span>
+                <Select value={chartType} onValueChange={setChartType}>
+                  <SelectTrigger className="w-36 h-8 text-xs bg-white dark:bg-slate-800" data-testid="chart-type-selector">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="candlestick">Candlestick</SelectItem>
+                    <SelectItem value="line">Line Chart</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground font-medium">Currency:</span>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-28 h-8 text-xs bg-white dark:bg-slate-800">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INR">₹ INR</SelectItem>
+                    <SelectItem value="USD">$ USD</SelectItem>
+                    <SelectItem value="EUR">€ EUR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1 border rounded-md h-8 bg-white dark:bg-slate-800">
-              <Switch
-                checked={realtime}
-                onCheckedChange={setRealtime}
-                disabled={!marketStatus?.is_open}
-                data-testid="realtime-toggle"
+            <div className="flex items-center gap-2 flex-wrap">
+              <LiveAutoRefreshBar
+                interval={refreshInterval}
+                onIntervalChange={setRefreshInterval}
+                isPaused={isPaused}
+                onTogglePause={() => setIsPaused((prev) => !prev)}
+                onManualRefresh={() => handleAnalyze(stock, timeframe, currency, false)}
+                lastUpdated={lastUpdated}
+                isRefreshing={isSilentRefreshing}
               />
-              <span className="text-xs font-medium">Real-Time</span>
             </div>
 
             <div className="flex items-center gap-1.5">

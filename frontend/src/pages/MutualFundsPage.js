@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getMutualFunds, searchMutualFunds, POPULAR_MUTUAL_FUNDS } from '../services/api';
 import { Button } from '../components/ui/button';
+import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Slider } from '../components/ui/slider';
@@ -1758,29 +1759,53 @@ export default function MutualFundsPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(2000); // 2s Fast Auto-reload
+  const [isPaused, setIsPaused] = useState(false);
+  const [isSilentRefreshing, setIsSilentRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
-    fetchMutualFunds();
+    fetchMutualFunds(false);
   }, []);
 
-  const fetchMutualFunds = async () => {
+  // Continuous Auto-reload Interval
+  useEffect(() => {
+    if (isPaused || refreshInterval <= 0) return;
+
+    const intervalId = setInterval(() => {
+      fetchMutualFunds(true);
+    }, refreshInterval);
+
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, isPaused]);
+
+  const fetchMutualFunds = async (isSilent = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
+      else setIsSilentRefreshing(true);
+
       const data = await getMutualFunds(50);
       if (data?.funds?.length) {
         setFunds(data.funds);
       }
+      setLastUpdated(Date.now());
     } catch (error) {
       console.warn('Using local popular mutual funds fallback');
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
+      setIsSilentRefreshing(false);
+      isFetchingRef.current = false;
     }
   };
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) {
-      fetchMutualFunds();
+      fetchMutualFunds(false);
       return;
     }
 
@@ -1788,6 +1813,7 @@ export default function MutualFundsPage() {
       setLoading(true);
       const data = await searchMutualFunds(searchQuery);
       setFunds(data.results || []);
+      setLastUpdated(Date.now());
     } catch (error) {
       toast.error('Search failed');
     } finally {
@@ -1886,17 +1912,29 @@ export default function MutualFundsPage() {
                 </p>
               </div>
 
-              <form onSubmit={handleSearch} className="w-full md:w-80">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search by fund name, AMC..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 bg-white dark:bg-slate-900 text-sm"
-                  />
-                </div>
-              </form>
+              <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto">
+                <LiveAutoRefreshBar
+                  interval={refreshInterval}
+                  onIntervalChange={setRefreshInterval}
+                  isPaused={isPaused}
+                  onTogglePause={() => setIsPaused((prev) => !prev)}
+                  onManualRefresh={() => fetchMutualFunds(false)}
+                  lastUpdated={lastUpdated}
+                  isRefreshing={isSilentRefreshing}
+                />
+
+                <form onSubmit={handleSearch} className="w-full sm:w-72">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search by fund name, AMC..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 bg-white dark:bg-slate-900 text-sm"
+                    />
+                  </div>
+                </form>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5 mb-6">
