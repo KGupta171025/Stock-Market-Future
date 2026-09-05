@@ -3,8 +3,26 @@ import { Activity, Clock, ShieldCheck, Database } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 export function TelemetryBadge({ source = 'Exchange Real-Time Feed', status = 'Live', size = 'sm', className = '' }) {
-  const isLive = (status || '').toLowerCase().includes('live') || (status || '').toLowerCase().includes('open');
-  const isDelayed = (status || '').toLowerCase().includes('delay');
+  const statusStr = (status || '').toLowerCase();
+  const isLive = statusStr === 'live' || statusStr === 'open' || (statusStr.includes('live') && !statusStr.includes('closed'));
+  const isClosed = statusStr.includes('closed') || statusStr === 'close' || statusStr.includes('holiday');
+  const isDelayed = statusStr.includes('delay');
+
+  let badgeClasses = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border border-border/60';
+  let dotClasses = 'bg-slate-400';
+
+  if (isLive) {
+    badgeClasses = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800';
+    dotClasses = 'bg-emerald-500 animate-pulse';
+  } else if (isClosed) {
+    badgeClasses = 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800/80';
+    dotClasses = 'bg-amber-500';
+  } else if (isDelayed) {
+    badgeClasses = 'bg-blue-50 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-300 dark:border-blue-800';
+    dotClasses = 'bg-blue-500';
+  }
+
+  const displayStatus = isClosed ? 'Closed' : (status || 'Live');
 
   return (
     <div className={'inline-flex items-center gap-1.5 flex-wrap ' + className}>
@@ -13,23 +31,9 @@ export function TelemetryBadge({ source = 'Exchange Real-Time Feed', status = 'L
         <span className="truncate max-w-[130px] sm:max-w-none">{source}</span>
       </span>
 
-      <span
-        className={
-          'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ' +
-          (isLive
-            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
-            : isDelayed
-            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
-            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border border-border/60')
-        }
-      >
-        <span
-          className={
-            'h-1.5 w-1.5 rounded-full ' +
-            (isLive ? 'bg-emerald-500 animate-pulse' : isDelayed ? 'bg-amber-500' : 'bg-slate-400')
-          }
-        />
-        {status || 'Live'}
+      <span className={'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ' + badgeClasses}>
+        <span className={'h-1.5 w-1.5 rounded-full ' + dotClasses} />
+        {displayStatus}
       </span>
     </div>
   );

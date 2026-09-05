@@ -1246,40 +1246,59 @@ export const POPULAR_MUTUAL_FUNDS = [
   },
 ];
 
-const checkMarketStatusMock = () => {
+export const checkMarketStatusMock = () => {
   const now = new Date();
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const ist = new Date(utc + (3600000 * 5.5));
-  const day = ist.getDay();
+  // Time in Indian Standard Time (IST = UTC + 5:30)
+  const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const ist = new Date(utcMs + (3600000 * 5.5));
+  const day = ist.getDay(); // 0 = Sun, 1 = Mon, ..., 5 = Fri, 6 = Sat
   const hour = ist.getHours();
   const min = ist.getMinutes();
   const totalMin = hour * 60 + min;
 
   const isWeekday = day >= 1 && day <= 5;
-  const isMarketHours = totalMin >= 555 && totalMin <= 930;
-  const isOpen = isWeekday && isMarketHours;
+  // NSE & BSE regular trading session: 9:15 AM (555 min) to 3:30 PM (930 min) IST, Mon-Fri
+  const isOpen = isWeekday && totalMin >= 555 && totalMin <= 930;
 
   return {
     is_open: isOpen,
     market: 'NSE/BSE (India)',
-    current_time_ist: ist.toLocaleTimeString('en-IN', { hour12: true }),
+    current_time_ist: ist.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
     session: isOpen ? 'Regular Trading' : 'Market Closed',
-    next_open: '09:15 AM IST (Next Trading Day)',
+    status: isOpen ? 'Live' : 'Market Closed',
+    next_open: '09:15 AM IST (Monday - Friday)',
   };
 };
 
 export const checkUSMarketStatusMock = () => {
   const now = new Date();
-  // US Eastern Time (UTC-4 in EDT or UTC-5 in EST)
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const edt = new Date(utc - (3600000 * 4));
-  const day = edt.getDay();
-  const hour = edt.getHours();
-  const min = edt.getMinutes();
+  // US Eastern Time (NYSE & NASDAQ)
+  // Regular US session: 9:30 AM to 4:00 PM Eastern Time (ET), Monday through Friday
+  // In IST:
+  // - Daylight Saving Time (DST, mid-March to early November): 7:00 PM to 1:30 AM IST (Mon evening - Sat 1:30 AM IST)
+  // - Standard Time (early November to mid-March): 8:00 PM to 2:30 AM IST (Mon evening - Sat 2:30 AM IST)
+  let edtDate;
+  let isDST = false;
+  try {
+    const etString = now.toLocaleString('en-US', { timeZone: 'America/New_York' });
+    edtDate = new Date(etString);
+    const month = edtDate.getMonth(); // 0-indexed: 2=March, 10=Nov
+    isDST = month >= 2 && month <= 10;
+  } catch (e) {
+    const month = now.getUTCMonth();
+    isDST = month >= 2 && month <= 10;
+    const offsetHours = isDST ? -4 : -5;
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    edtDate = new Date(utcMs + (3600000 * offsetHours));
+  }
+
+  const day = edtDate.getDay(); // 0 = Sun, 1 = Mon, ..., 5 = Fri, 6 = Sat
+  const hour = edtDate.getHours();
+  const min = edtDate.getMinutes();
   const totalMin = hour * 60 + min;
 
   const isWeekday = day >= 1 && day <= 5;
-  // Regular market hours: 9:30 AM (570 min) to 4:00 PM (960 min) EDT
+  // Regular market hours: 9:30 AM (570 min) to 4:00 PM (960 min) ET
   const isOpen = isWeekday && totalMin >= 570 && totalMin <= 960;
   const isPreMarket = isWeekday && totalMin >= 240 && totalMin < 570;
   const isAfterHours = isWeekday && totalMin > 960 && totalMin <= 1200;
@@ -1289,12 +1308,17 @@ export const checkUSMarketStatusMock = () => {
   else if (isPreMarket) session = 'Pre-Market';
   else if (isAfterHours) session = 'After-Hours';
 
+  const istHoursLabel = isDST ? '7:00 PM to 1:30 AM IST (DST)' : '8:00 PM to 2:30 AM IST (Standard Time)';
+
   return {
     is_open: isOpen,
     market: 'NYSE/NASDAQ (US)',
-    current_time_est: edt.toLocaleTimeString('en-US', { hour12: true }) + ' EDT',
+    current_time_est: edtDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) + (isDST ? ' EDT' : ' EST'),
     session,
-    next_open: '09:30 AM EDT (Next Trading Day)',
+    status: isOpen ? 'Live' : 'Market Closed',
+    is_dst: isDST,
+    ist_hours: istHoursLabel,
+    next_open: '09:30 AM ET (' + istHoursLabel + ')',
   };
 };
 
@@ -1503,18 +1527,22 @@ export const fetchTwelveDataQuote = async (symbol, exchange) => {
   return null;
 };
 
-// Micro-tick simulation engine for realistic ultra-fast live market feeds with normalized telemetry
-const applyLiveMicroTicks = (items, defaultSource = 'Exchange Real-Time Feed') => {
+// Micro-tick simulation engine for realistic live market feeds with normalized telemetry
+// Only applies fluctuations when market is open; locks prices to closing LTP when closed.
+const applyLiveMicroTicks = (items, defaultSource = 'Exchange Real-Time Feed', isMarketOpen = false) => {
   const nowIso = new Date().toISOString();
+  const statusLabel = isMarketOpen ? 'Live' : 'Market Closed';
+
   return items.map((item) => {
-    // 70% chance of realistic micro-tick (+-0.03% to +-0.15%)
     let currentPrice = item.price || item.ltp;
     let currentChange = item.change || 0;
     let currentChangePercent = item.change_percent || 0;
     let currentHigh = item.high || currentPrice;
     let currentLow = item.low || currentPrice;
 
-    if (Math.random() < 0.70) {
+    // IMPORTANT: Only apply live micro-ticks and price fluctuations when market is OPEN!
+    // When market is CLOSED, prices stay rock-solid at official closing settlement LTP.
+    if (isMarketOpen && Math.random() < 0.70) {
       const deltaPercent = (Math.random() * 0.24 - 0.12) / 100;
       currentPrice = parseFloat(Math.max(1, currentPrice * (1 + deltaPercent)).toFixed(2));
       const priceDiff = parseFloat((currentPrice - (item.price || currentPrice)).toFixed(2));
@@ -1537,76 +1565,104 @@ const applyLiveMicroTicks = (items, defaultSource = 'Exchange Real-Time Feed') =
       exchange_timestamp: nowIso,
       received_timestamp: nowIso,
       data_source: item.data_source || defaultSource,
-      status: 'Live',
+      status: statusLabel,
     }, item.exchange || 'NSE', defaultSource);
   });
 };
 
 export const getIndices = async () => {
+  const marketStatus = checkMarketStatusMock();
   if (currentBaseUrl) {
     try {
       const response = await api.get('/indices');
       if (response.data?.indices) {
-        return { indices: response.data.indices.map(i => normalizeQuote(i, 'NSE Index', 'Exchange Real-Time Feed')) };
+        return {
+          indices: response.data.indices.map(i => normalizeQuote({
+            ...i,
+            status: marketStatus.is_open ? 'Live' : 'Market Closed'
+          }, 'NSE Index', 'Exchange Real-Time Feed'))
+        };
       }
     } catch (err) {
       console.warn('Backend unavailable, using simulated indices.');
     }
   }
-  return { indices: applyLiveMicroTicks(POPULAR_INDICES, 'Exchange Real-Time Feed') };
+  return { indices: applyLiveMicroTicks(POPULAR_INDICES, 'Exchange Real-Time Feed', marketStatus.is_open) };
 };
 
 export const getUSIndices = async () => {
+  const usStatus = checkUSMarketStatusMock();
   if (currentBaseUrl) {
     try {
       const response = await api.get('/us/indices');
       if (response.data?.indices) {
-        return { indices: response.data.indices.map(i => normalizeQuote(i, 'US Index', 'Global Market Feed')) };
+        return {
+          indices: response.data.indices.map(i => normalizeQuote({
+            ...i,
+            status: usStatus.is_open ? 'Live' : 'Market Closed'
+          }, 'US Index', 'Global Market Feed'))
+        };
       }
     } catch (err) {
       console.warn('Backend unavailable, using simulated US indices.');
     }
   }
-  return { indices: applyLiveMicroTicks(POPULAR_US_INDICES, 'Global Market Feed') };
+  return { indices: applyLiveMicroTicks(POPULAR_US_INDICES, 'Global Market Feed', usStatus.is_open) };
 };
 
 export const getStocksList = async () => {
+  const marketStatus = checkMarketStatusMock();
   if (currentBaseUrl) {
     try {
       const response = await api.get('/stocks/list');
       if (response.data?.stocks) {
-        return { stocks: response.data.stocks.map(s => normalizeQuote(s, 'NSE', 'Exchange Real-Time Feed')) };
+        return {
+          stocks: response.data.stocks.map(s => normalizeQuote({
+            ...s,
+            status: marketStatus.is_open ? 'Live' : 'Market Closed'
+          }, 'NSE', 'Exchange Real-Time Feed'))
+        };
       }
     } catch (err) {
       console.warn('Backend unavailable, using simulated stocks list.');
     }
   }
-  return { stocks: applyLiveMicroTicks(POPULAR_STOCKS, 'Exchange Real-Time Feed') };
+  return { stocks: applyLiveMicroTicks(POPULAR_STOCKS, 'Exchange Real-Time Feed', marketStatus.is_open) };
 };
 
 export const getUSStocksList = async () => {
+  const usStatus = checkUSMarketStatusMock();
   if (currentBaseUrl) {
     try {
       const response = await api.get('/us/stocks/list');
       if (response.data?.stocks) {
-        return { stocks: response.data.stocks.map(s => normalizeQuote(s, 'NASDAQ', 'Global Market Feed')) };
+        return {
+          stocks: response.data.stocks.map(s => normalizeQuote({
+            ...s,
+            status: usStatus.is_open ? 'Live' : 'Market Closed'
+          }, 'NASDAQ', 'Global Market Feed'))
+        };
       }
     } catch (err) {
       console.warn('Backend unavailable, querying Twelve Data / live feeds.');
     }
   }
 
-  // Attempt live Twelve Data quotes for top US mega caps if online
-  const usList = applyLiveMicroTicks(POPULAR_US_STOCKS, 'Global Market Feed');
-  return { stocks: usList };
+  return { stocks: applyLiveMicroTicks(POPULAR_US_STOCKS, 'Global Market Feed', usStatus.is_open) };
 };
 
 export const searchStocks = async (query) => {
+  const marketStatus = checkMarketStatusMock();
   if (currentBaseUrl) {
     try {
       const response = await api.get(`/stocks/search?q=${encodeURIComponent(query)}`);
       if (response.data?.results) {
-        return { results: response.data.results.map(s => normalizeQuote(s, 'NSE', 'Exchange Real-Time Feed')) };
+        return {
+          results: response.data.results.map(s => normalizeQuote({
+            ...s,
+            status: marketStatus.is_open ? 'Live' : 'Market Closed'
+          }, 'NSE', 'Exchange Real-Time Feed'))
+        };
       }
     } catch (err) {
       console.warn('Backend unavailable, using simulated stock search.');
@@ -1616,16 +1672,29 @@ export const searchStocks = async (query) => {
   const allSymbols = [...POPULAR_INDICES, ...POPULAR_STOCKS, ...POPULAR_US_INDICES, ...POPULAR_US_STOCKS];
   const results = allSymbols
     .filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || (s.sector && s.sector.toLowerCase().includes(q)))
-    .map(s => normalizeQuote(s, s.exchange || 'NSE', 'Exchange Real-Time Feed'));
+    .map(s => {
+      const isUS = ['NASDAQ', 'NYSE', 'US Index'].includes(s.exchange);
+      const open = isUS ? checkUSMarketStatusMock().is_open : marketStatus.is_open;
+      return normalizeQuote({
+        ...s,
+        status: open ? 'Live' : 'Market Closed'
+      }, s.exchange || 'NSE', isUS ? 'Global Market Feed' : 'Exchange Real-Time Feed');
+    });
   return { results };
 };
 
 export const searchUSStocks = async (query) => {
+  const usStatus = checkUSMarketStatusMock();
   if (currentBaseUrl) {
     try {
       const response = await api.get(`/us/stocks/search?q=${encodeURIComponent(query)}`);
       if (response.data?.results) {
-        return { results: response.data.results.map(s => normalizeQuote(s, 'NASDAQ', 'Global Market Feed')) };
+        return {
+          results: response.data.results.map(s => normalizeQuote({
+            ...s,
+            status: usStatus.is_open ? 'Live' : 'Market Closed'
+          }, 'NASDAQ', 'Global Market Feed'))
+        };
       }
     } catch (err) {
       console.warn('Backend unavailable, using simulated US stock search.');
@@ -1635,7 +1704,10 @@ export const searchUSStocks = async (query) => {
   const allSymbols = [...POPULAR_US_INDICES, ...POPULAR_US_STOCKS];
   const results = allSymbols
     .filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || (s.sector && s.sector.toLowerCase().includes(q)))
-    .map(s => normalizeQuote(s, 'NASDAQ', 'Global Market Feed'));
+    .map(s => normalizeQuote({
+      ...s,
+      status: usStatus.is_open ? 'Live' : 'Market Closed'
+    }, 'NASDAQ', 'Global Market Feed'));
   return { results };
 };
 
@@ -1762,13 +1834,15 @@ export const analyzeStock = async (request) => {
     },
   ];
 
+  const marketStatusObj = isUSStock ? checkUSMarketStatusMock() : checkMarketStatusMock();
+
   return {
     symbol: foundStock.symbol,
     name: foundStock.name,
     exchange: foundStock.exchange || (isUSStock ? 'NASDAQ' : 'NSE'),
     sector: foundStock.sector || (isUSStock ? 'US Equities' : 'Equities'),
-    market_status: isUSStock ? checkUSMarketStatusMock() : checkMarketStatusMock(),
-    realtime: !!request.realtime,
+    market_status: marketStatusObj,
+    realtime: !!request.realtime && marketStatusObj.is_open,
     currency: resolvedCurrency,
     
     // Mandatory Telemetry Fields
@@ -1784,7 +1858,7 @@ export const analyzeStock = async (request) => {
     exchange_timestamp: nowIso,
     received_timestamp: nowIso,
     data_source: isUSStock ? 'Global Market Feed' : 'Exchange Real-Time Feed',
-    status: 'Live',
+    status: marketStatusObj.is_open ? 'Live' : 'Market Closed',
 
     market_cap: foundStock.market_cap || (isUSStock ? '$1.5 Trillion' : '₹5.0 Lakh Cr'),
     pe_ratio: foundStock.pe_ratio || 28.5,
