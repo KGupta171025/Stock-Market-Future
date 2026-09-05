@@ -49,6 +49,7 @@ import {
   ArrowRightLeft,
   X,
   SlidersHorizontal,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -90,28 +91,100 @@ function formatINR(amount) {
   return `₹${Math.round(amount).toLocaleString('en-IN')}`;
 }
 
+export function getFundAge(launchDate) {
+  if (!launchDate) return null;
+  const launch = new Date(launchDate);
+  if (isNaN(launch.getTime())) return null;
+  const diffMs = Date.now() - launch.getTime();
+  const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+  if (years < 1) {
+    const months = Math.max(1, Math.round(years * 12));
+    return `${months} Months`;
+  }
+  return `${years.toFixed(1)} Years`;
+}
+
+export function getFundAgeYears(fund) {
+  if (!fund) return 100;
+  const dateStr = fund.launch_date || fund.inception_date;
+  if (!dateStr) return 100;
+  const launch = new Date(dateStr);
+  if (isNaN(launch.getTime())) return 100;
+  const diffMs = Date.now() - launch.getTime();
+  return diffMs / (1000 * 60 * 60 * 24 * 365.25);
+}
+
 export function getAvailableCagrOptions(fund) {
   if (!fund) return [{ key: '1 Year', label: '1 Year', value: 15.0 }];
   const options = [];
+  const ageYears = getFundAgeYears(fund);
 
-  const checkAndAdd = (key, label, value) => {
+  const checkAndAdd = (key, label, value, requiredYears) => {
+    // If the fund has not existed for requiredYears, do NOT display this CAGR option
+    if (requiredYears && ageYears < (requiredYears - 0.1)) {
+      return;
+    }
     if (value !== undefined && value !== null && value !== '' && !isNaN(Number(value))) {
       options.push({ key, label, value: Number(value) });
     }
   };
 
-  checkAndAdd('1 Year', '1 Year', fund.cagr_1yr ?? fund.cagr_1y);
-  checkAndAdd('2 Years', '2 Years', fund.cagr_2yr ?? fund.cagr_2y);
-  checkAndAdd('3 Years', '3 Years', fund.cagr_3yr ?? fund.cagr_3y);
-  checkAndAdd('4 Years', '4 Years', fund.cagr_4yr ?? fund.cagr_4y);
-  checkAndAdd('5 Years', '5 Years', fund.cagr_5yr ?? fund.cagr_5y);
-  checkAndAdd('All', 'All / Max', fund.cagr_all ?? fund.cagr_since_inception);
+  checkAndAdd('1 Year', '1 Year', fund.cagr_1yr ?? fund.cagr_1y, 1);
+  checkAndAdd('2 Years', '2 Years', fund.cagr_2yr ?? fund.cagr_2y, 2);
+  checkAndAdd('3 Years', '3 Years', fund.cagr_3yr ?? fund.cagr_3y, 3);
+  checkAndAdd('4 Years', '4 Years', fund.cagr_4yr ?? fund.cagr_4y, 4);
+  checkAndAdd('5 Years', '5 Years', fund.cagr_5yr ?? fund.cagr_5y, 5);
+  checkAndAdd('All', 'All / Inception', fund.cagr_all ?? fund.cagr_since_inception ?? fund.cagr_1yr);
 
   if (options.length === 0) {
-    options.push({ key: '1 Year', label: '1 Year', value: 15.0 });
+    options.push({ key: '1 Year', label: '1 Year', value: Number(fund.cagr_1yr || 15.0) });
   }
 
   return options;
+}
+
+export function calculateLumpsumOrRecurring({ amount, frequency = 'onetime', years = 5, returnRate = 15 }) {
+  const p = Number(amount) || 0;
+  const t = Number(years) || 1;
+  const r = (Number(returnRate) || 15) / 100;
+
+  if (frequency === 'onetime') {
+    const maturity = p * Math.pow(1 + r, t);
+    const invested = p;
+    const returns = Math.max(0, maturity - invested);
+    return {
+      installments: 1,
+      invested: Math.round(invested),
+      returns: Math.round(returns),
+      maturity: Math.round(maturity),
+      frequencyLabel: 'One-Time Lumpsum',
+    };
+  }
+
+  const monthsGap = frequency === '1M' ? 1 : frequency === '2M' ? 2 : frequency === '3M' ? 3 : frequency === '6M' ? 6 : 12;
+  const paymentsPerYear = 12 / monthsGap;
+  const totalInstallments = Math.round(t * paymentsPerYear);
+  const ratePerPeriod = r / paymentsPerYear;
+
+  let maturity = 0;
+  if (ratePerPeriod > 0) {
+    maturity = p * ((Math.pow(1 + ratePerPeriod, totalInstallments) - 1) / ratePerPeriod) * (1 + ratePerPeriod);
+  } else {
+    maturity = p * totalInstallments;
+  }
+  const invested = p * totalInstallments;
+  const returns = Math.max(0, maturity - invested);
+
+  return {
+    installments: totalInstallments,
+    invested: Math.round(invested),
+    returns: Math.round(returns),
+    maturity: Math.round(maturity),
+    frequencyLabel: frequency === '1M' ? 'Monthly (1M Gap)' :
+                    frequency === '2M' ? 'Every 2 Months Gap' :
+                    frequency === '3M' ? 'Quarterly (3M Gap)' :
+                    frequency === '6M' ? 'Half-Yearly (6M Gap)' : 'Annually (12M Gap)',
+  };
 }
 
 function calculateSIP(monthlyInvest, years, returnRate) {
@@ -267,6 +340,13 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
   const [hoverIndex, setHoverIndex] = useState(null);
   const chartRef = useRef(null);
 
+  const availableTimeframes = useMemo(() => {
+    const age = getFundAgeYears(fund);
+    if (age < 2) return ['3M', '6M', '1Y', 'Max'];
+    if (age < 5) return ['3M', '6M', '1Y', '2Y', 'Max'];
+    return ['3M', '6M', '1Y', '2Y', '5Y', 'Max'];
+  }, [fund]);
+
   const points = useMemo(() => {
     return generateHistoricalNavData(fund, activeTimeframe);
   }, [fund, activeTimeframe]);
@@ -328,7 +408,7 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
         </div>
 
         <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-0.5 rounded-lg border">
-          {['3M', '6M', '1Y', '2Y', '5Y', 'Max'].map(tf => (
+          {availableTimeframes.map(tf => (
             <button
               key={tf}
               type="button"
@@ -429,6 +509,25 @@ function MutualFundNavChart({ fund, activeTimeframe, onTimeframeChange }) {
             </g>
           )}
         </svg>
+      </div>
+
+      {/* Launch Date Information Bar Below Graph */}
+      <div className="mt-3 pt-2.5 border-t border-border/40 flex items-center justify-between flex-wrap gap-2 text-xs">
+        <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+          <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span className="text-muted-foreground">Launch Date:</span>
+          <strong className="font-semibold text-slate-900 dark:text-slate-100">{fund.launch_date || '20-Oct-2023'}</strong>
+        </div>
+        <div className="flex items-center gap-2">
+          {getFundAge(fund.launch_date) && (
+            <Badge variant="outline" className="text-[11px] font-mono bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">
+              Fund Age: {getFundAge(fund.launch_date)}
+            </Badge>
+          )}
+          <Badge variant="secondary" className="text-[10px] hidden sm:inline-flex bg-primary/10 text-primary font-medium">
+            {fund.benchmark || 'Benchmark TRI'}
+          </Badge>
+        </div>
       </div>
     </div>
   );
@@ -716,6 +815,445 @@ function MutualFundComparisonDialog({ fund1, funds, isOpen, onClose }) {
   );
 }
 
+function MutualFundInvestmentPlanner({ fund, onOpenCompare, showProjectionsTable = false }) {
+  const [investmentMode, setInvestmentMode] = useState('lumpsum'); // 'lumpsum' | 'sip'
+  
+  // Lumpsum / Custom Frequency Gap State
+  const [lumpsumAmount, setLumpsumAmount] = useState(25000);
+  const [frequencyGap, setFrequencyGap] = useState('onetime'); // 'onetime' | '1M' | '2M' | '3M' | '6M' | '12M'
+  const [lumpsumYears, setLumpsumYears] = useState(5);
+  const [expectedReturnRate, setExpectedReturnRate] = useState(() => {
+    const c = parseFloat(fund.cagr_3yr || fund.cagr_2yr || fund.cagr_1yr || 18);
+    return isNaN(c) ? 15 : Math.min(Math.max(c, 5), 35);
+  });
+
+  // SIP State
+  const [sipAmount, setSipAmount] = useState(fund.min_sip ? Math.max(fund.min_sip, 5000) : 5000);
+  const [sipYears, setSipYears] = useState(5);
+  const [sipReturnRate, setSipReturnRate] = useState(() => {
+    const c = parseFloat(fund.cagr_3yr || fund.cagr_2yr || fund.cagr_1yr || 18);
+    return isNaN(c) ? 15 : Math.min(Math.max(c, 5), 35);
+  });
+
+  const lumpsumCalc = useMemo(() => {
+    return calculateLumpsumOrRecurring({
+      amount: lumpsumAmount,
+      frequency: frequencyGap,
+      years: lumpsumYears,
+      returnRate: expectedReturnRate,
+    });
+  }, [lumpsumAmount, frequencyGap, lumpsumYears, expectedReturnRate]);
+
+  const sipCalc = useMemo(() => {
+    return calculateSIP(sipAmount, sipYears, sipReturnRate);
+  }, [sipAmount, sipYears, sipReturnRate]);
+
+  return (
+    <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border shadow-sm space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="outline" className="text-[11px] font-semibold bg-primary/5 text-primary border-primary/20">
+              Interactive Investment Planner
+            </Badge>
+          </div>
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+            Investment Mode & Strategy Planner
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Choose between <strong>Buy (Lumpsum & Custom Month Gaps)</strong> or <strong>SIP (Systematic Investment)</strong>
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Mode Switcher */}
+          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-border/50">
+            <button
+              type="button"
+              onClick={() => setInvestmentMode('lumpsum')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                investmentMode === 'lumpsum'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Wallet className="h-3.5 w-3.5" /> Buy (Lumpsum & Gaps)
+            </button>
+            <button
+              type="button"
+              onClick={() => setInvestmentMode('sip')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                investmentMode === 'sip'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Calculator className="h-3.5 w-3.5" /> SIP (Systematic Plan)
+            </button>
+          </div>
+
+          {onOpenCompare && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onOpenCompare}
+              className="text-xs h-9 gap-1.5 font-semibold text-slate-700 dark:text-slate-300 border-border/80 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              <Scale className="h-3.5 w-3.5 text-primary" /> Compare Fund
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {investmentMode === 'lumpsum' ? (
+        /* Lumpsum & Custom Frequency Gap Planning */
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="lg:col-span-7 space-y-5">
+              {/* Amount Range Input */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <span>Investment Amount Range</span>
+                    <span className="text-[10px] text-muted-foreground">(Min: ₹{fund.min_sip || 100})</span>
+                  </label>
+                  <div className="text-lg font-black text-primary font-mono">
+                    ₹{lumpsumAmount.toLocaleString('en-IN')}
+                  </div>
+                </div>
+                <Slider
+                  value={[lumpsumAmount]}
+                  min={500}
+                  max={500000}
+                  step={500}
+                  onValueChange={(val) => setLumpsumAmount(val[0])}
+                  className="my-2"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {[5000, 10000, 25000, 50000, 100000, 250000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setLumpsumAmount(preset)}
+                      className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-colors ${
+                        lumpsumAmount === preset
+                          ? 'bg-primary text-primary-foreground border-primary font-bold shadow-sm'
+                          : 'bg-white dark:bg-slate-900 text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      ₹{preset.toLocaleString('en-IN')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Month Gap / Frequency Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                  Select Investment Interval / Month Gap
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    { id: 'onetime', label: 'One-Time Lumpsum', desc: 'Single deposit' },
+                    { id: '1M', label: 'Every 1 Month', desc: 'Monthly (1M gap)' },
+                    { id: '2M', label: 'Every 2 Months', desc: 'Bi-monthly gap' },
+                    { id: '3M', label: 'Every 3 Months', desc: 'Quarterly gap' },
+                    { id: '6M', label: 'Every 6 Months', desc: 'Half-yearly gap' },
+                    { id: '12M', label: 'Every 12 Months', desc: 'Annual deposit' },
+                  ].map((gap) => (
+                    <button
+                      key={gap.id}
+                      type="button"
+                      onClick={() => setFrequencyGap(gap.id)}
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        frequencyGap === gap.id
+                          ? 'bg-primary/10 border-primary text-primary font-bold shadow-xs'
+                          : 'bg-slate-50/70 dark:bg-slate-800/40 border-border/70 hover:border-slate-300 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <div className="text-xs font-semibold">{gap.label}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">{gap.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Horizon & Expected Rate */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Investment Horizon</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{lumpsumYears} Years</span>
+                  </div>
+                  <Slider
+                    value={[lumpsumYears]}
+                    min={1}
+                    max={25}
+                    step={1}
+                    onValueChange={(val) => setLumpsumYears(val[0])}
+                  />
+                  <div className="flex gap-1 mt-1">
+                    {[1, 3, 5, 10, 15, 20].map((yr) => (
+                      <button
+                        key={yr}
+                        type="button"
+                        onClick={() => setLumpsumYears(yr)}
+                        className={`text-[10px] flex-1 py-0.5 rounded border font-mono ${
+                          lumpsumYears === yr ? 'bg-primary text-white font-bold' : 'bg-slate-50 dark:bg-slate-800 text-muted-foreground'
+                        }`}
+                      >
+                        {yr}Y
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Expected Return (p.a)</span>
+                    <span className="font-mono font-bold text-green-600 dark:text-green-400">{expectedReturnRate}%</span>
+                  </div>
+                  <Slider
+                    value={[expectedReturnRate]}
+                    min={5}
+                    max={35}
+                    step={0.5}
+                    onValueChange={(val) => setExpectedReturnRate(val[0])}
+                  />
+                  <span className="text-[10px] text-muted-foreground block mt-1">
+                    Fund Benchmark Reference: <strong>+{fund.cagr_1yr || 15}% CAGR</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Lumpsum Projections Display Card */}
+            <div className="lg:col-span-5 p-4 sm:p-5 rounded-2xl border bg-slate-50/60 dark:bg-slate-800/40 flex flex-col justify-between space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Projected Wealth Output
+                  </span>
+                  <Badge variant="outline" className="text-[11px] font-mono bg-white dark:bg-slate-900">
+                    {lumpsumCalc.frequencyLabel}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3.5">
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border">
+                    <span className="text-[10px] text-muted-foreground block font-medium">Invested Principal</span>
+                    <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">
+                      {formatINR(lumpsumCalc.invested)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground block mt-0.5">
+                      ({lumpsumCalc.installments} {lumpsumCalc.installments === 1 ? 'deposit' : 'deposits'})
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900/60 rounded-xl">
+                    <span className="text-[10px] text-green-700 dark:text-green-300 block font-medium">Compounded Gain</span>
+                    <span className="text-base sm:text-lg font-black text-green-600 dark:text-green-400 font-mono">
+                      +{formatINR(lumpsumCalc.returns)}
+                    </span>
+                    <span className="text-[10px] text-green-700 dark:text-green-300 block mt-0.5 font-medium">
+                      ({((lumpsumCalc.returns / Math.max(1, lumpsumCalc.invested)) * 100).toFixed(0)}% growth)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-primary font-semibold block">Total Estimated Maturity</span>
+                    <span className="text-xl sm:text-2xl font-black text-primary font-mono mt-0.5">
+                      {formatINR(lumpsumCalc.maturity)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-muted-foreground block">Multiplier</span>
+                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100 font-mono">
+                      {(lumpsumCalc.maturity / Math.max(1, lumpsumCalc.invested)).toFixed(2)}x
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Visualizer */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                  <span>Principal ({((lumpsumCalc.invested / Math.max(1, lumpsumCalc.maturity)) * 100).toFixed(0)}%)</span>
+                  <span className="text-green-600">Gains ({((lumpsumCalc.returns / Math.max(1, lumpsumCalc.maturity)) * 100).toFixed(0)}%)</span>
+                </div>
+                <div className="h-3 w-full bg-green-500 rounded-full overflow-hidden flex">
+                  <div
+                    className="bg-primary h-full transition-all"
+                    style={{ width: `${(lumpsumCalc.invested / Math.max(1, lumpsumCalc.maturity)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* SIP Mode */
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="lg:col-span-7 space-y-5">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Monthly SIP Amount
+                  </label>
+                  <div className="text-lg font-black text-primary font-mono">
+                    ₹{sipAmount.toLocaleString('en-IN')}
+                  </div>
+                </div>
+                <Slider
+                  value={[sipAmount]}
+                  min={100}
+                  max={100000}
+                  step={500}
+                  onValueChange={(val) => setSipAmount(val[0])}
+                  className="my-2"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {[1000, 2500, 5000, 10000, 25000, 50000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setSipAmount(preset)}
+                      className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-colors ${
+                        sipAmount === preset
+                          ? 'bg-primary text-primary-foreground border-primary font-bold shadow-sm'
+                          : 'bg-white dark:bg-slate-900 text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      ₹{preset.toLocaleString('en-IN')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Investment Period</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{sipYears} Years</span>
+                  </div>
+                  <Slider
+                    value={[sipYears]}
+                    min={1}
+                    max={25}
+                    step={1}
+                    onValueChange={(val) => setSipYears(val[0])}
+                  />
+                  <div className="flex gap-1 mt-1">
+                    {[1, 3, 5, 10, 15, 20].map((yr) => (
+                      <button
+                        key={yr}
+                        type="button"
+                        onClick={() => setSipYears(yr)}
+                        className={`text-[10px] flex-1 py-0.5 rounded border font-mono ${
+                          sipYears === yr ? 'bg-primary text-white font-bold' : 'bg-slate-50 dark:bg-slate-800 text-muted-foreground'
+                        }`}
+                      >
+                        {yr}Y
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Expected CAGR (p.a)</span>
+                    <span className="font-mono font-bold text-green-600 dark:text-green-400">{sipReturnRate}%</span>
+                  </div>
+                  <Slider
+                    value={[sipReturnRate]}
+                    min={5}
+                    max={30}
+                    step={0.5}
+                    onValueChange={(val) => setSipReturnRate(val[0])}
+                  />
+                  <span className="text-[10px] text-muted-foreground block mt-1">
+                    Historical 1Y Return: <strong>+{fund.cagr_1yr || 15}%</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 p-4 sm:p-5 rounded-2xl border bg-slate-50/60 dark:bg-slate-800/40 flex flex-col justify-between space-y-4">
+              <div>
+                <div className="grid grid-cols-2 gap-3 mb-3.5">
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border">
+                    <span className="text-[10px] text-muted-foreground block font-medium">Invested via SIP</span>
+                    <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">
+                      {formatINR(sipCalc.invested)}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900/60 rounded-xl">
+                    <span className="text-[10px] text-green-700 dark:text-green-300 block font-medium">Estimated Wealth Gain</span>
+                    <span className="text-base sm:text-lg font-black text-green-600 dark:text-green-400 font-mono">
+                      +{formatINR(sipCalc.returns)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-primary font-semibold block">Total Expected SIP Corpus</span>
+                    <span className="text-xl sm:text-2xl font-black text-primary font-mono mt-0.5">
+                      {formatINR(sipCalc.maturity)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-muted-foreground block">Wealth Multiplier</span>
+                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100 font-mono">
+                      {(sipCalc.maturity / Math.max(1, sipCalc.invested)).toFixed(2)}x
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                  <span>Invested ({((sipCalc.invested / Math.max(1, sipCalc.maturity)) * 100).toFixed(0)}%)</span>
+                  <span className="text-green-600">Gains ({((sipCalc.returns / Math.max(1, sipCalc.maturity)) * 100).toFixed(0)}%)</span>
+                </div>
+                <div className="h-3 w-full bg-green-500 rounded-full overflow-hidden flex">
+                  <div
+                    className="bg-primary h-full transition-all"
+                    style={{ width: `${(sipCalc.invested / Math.max(1, sipCalc.maturity)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {showProjectionsTable && (
+            <div className="border rounded-xl overflow-hidden text-xs shadow-sm">
+              <div className="bg-slate-100 dark:bg-slate-800 p-2.5 font-bold text-slate-700 dark:text-slate-300">
+                Milestone Wealth Projections
+              </div>
+              <div className="divide-y">
+                {[1, 3, 5, 10, 15, 20].map((period) => {
+                  const res = calculateSIP(sipAmount, period, sipReturnRate);
+                  return (
+                    <div key={period} className="flex justify-between items-center p-2.5 bg-white dark:bg-slate-900">
+                      <span className="font-semibold">{period} {period === 1 ? 'Year' : 'Years'}</span>
+                      <span className="text-muted-foreground font-mono">Invested: {formatINR(res.invested)}</span>
+                      <span className="font-bold text-primary font-mono">{formatINR(res.maturity)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
   const availableCagrOptions = useMemo(() => {
     return getAvailableCagrOptions(fund);
@@ -746,13 +1284,6 @@ function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
     return availableCagrOptions.find(o => o.key === cagrTimeframe) || availableCagrOptions[0];
   }, [availableCagrOptions, cagrTimeframe]);
 
-  const [sipAmount, setSipAmount] = useState(fund.min_sip ? Math.max(fund.min_sip, 5000) : 5000);
-  const [sipYears, setSipYears] = useState(5);
-  const [sipReturnRate, setSipReturnRate] = useState(() => {
-    const c = parseFloat(fund.cagr_3yr || fund.cagr_1yr || 15);
-    return isNaN(c) ? 15 : Math.min(Math.max(c, 5), 30);
-  });
-
   const handleToggleWatchlist = (schemeCode) => {
     setWatchlistFunds(prev => {
       const next = { ...prev, [schemeCode]: !prev[schemeCode] };
@@ -760,8 +1291,6 @@ function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
       return next;
     });
   };
-
-  const sipCalc = calculateSIP(sipAmount, sipYears, sipReturnRate);
 
   return (
     <div className="space-y-6 pb-12">
@@ -837,13 +1366,13 @@ function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid grid-cols-3 w-full max-w-lg mx-auto bg-slate-100 dark:bg-slate-800 p-1">
           <TabsTrigger value="overview" className="text-xs font-semibold flex items-center gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" /> Overview & Coin Chart
+            <BarChart3 className="h-3.5 w-3.5" /> Overview & Chart
           </TabsTrigger>
           <TabsTrigger value="holdings" className="text-xs font-semibold flex items-center gap-1.5">
             <PieChart className="h-3.5 w-3.5" /> Sectors & Holdings
           </TabsTrigger>
           <TabsTrigger value="sip" className="text-xs font-semibold flex items-center gap-1.5">
-            <Calculator className="h-3.5 w-3.5" /> SIP Calculator
+            <Calculator className="h-3.5 w-3.5" /> Buy & SIP Planner
           </TabsTrigger>
         </TabsList>
 
@@ -1052,6 +1581,12 @@ function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
               </div>
             </div>
           </div>
+
+          {/* Integrated Investment & Strategy Planner on Overview Tab */}
+          <MutualFundInvestmentPlanner
+            fund={fund}
+            onOpenCompare={() => setIsCompareOpen(true)}
+          />
         </TabsContent>
 
         <TabsContent value="holdings" className="space-y-6">
@@ -1193,151 +1728,11 @@ function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
         </TabsContent>
 
         <TabsContent value="sip" className="space-y-5">
-          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border shadow-sm space-y-5">
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Monthly Investment Amount
-                </label>
-                <div className="text-base font-black text-primary font-mono">
-                  ₹{sipAmount.toLocaleString('en-IN')}
-                </div>
-              </div>
-              <Slider
-                value={[sipAmount]}
-                min={100}
-                max={100000}
-                step={500}
-                onValueChange={(val) => setSipAmount(val[0])}
-                className="my-3"
-              />
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {[1000, 2500, 5000, 10000, 25000, 50000].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setSipAmount(preset)}
-                    className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-colors ${
-                      sipAmount === preset
-                        ? 'bg-primary text-primary-foreground border-primary font-bold'
-                        : 'bg-white dark:bg-slate-900 text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    ₹{preset.toLocaleString('en-IN')}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Investment Time Period
-                </label>
-                <div className="text-base font-black text-slate-900 dark:text-slate-100 font-mono">
-                  {sipYears} {sipYears === 1 ? 'Year' : 'Years'}
-                </div>
-              </div>
-              <Slider
-                value={[sipYears]}
-                min={1}
-                max={25}
-                step={1}
-                onValueChange={(val) => setSipYears(val[0])}
-                className="my-3"
-              />
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {[1, 3, 5, 10, 15, 20].map((yr) => (
-                  <button
-                    key={yr}
-                    type="button"
-                    onClick={() => setSipYears(yr)}
-                    className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-colors ${
-                      sipYears === yr
-                        ? 'bg-primary text-primary-foreground border-primary font-bold'
-                        : 'bg-white dark:bg-slate-900 text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {yr}Y
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Expected Return Rate (p.a)
-                </label>
-                <div className="text-base font-black text-green-600 dark:text-green-400 font-mono">
-                  {sipReturnRate}%
-                </div>
-              </div>
-              <Slider
-                value={[sipReturnRate]}
-                min={5}
-                max={30}
-                step={0.5}
-                onValueChange={(val) => setSipReturnRate(val[0])}
-                className="my-3"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Fund's 3-Year Historical CAGR: <strong className="text-foreground">+{fund.cagr_3yr || 24.1}%</strong>
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 shadow-sm">
-              <span className="text-[11px] text-muted-foreground block mb-0.5 font-medium">Total Invested Amount</span>
-              <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 font-mono">
-                {formatINR(sipCalc.invested)}
-              </span>
-            </div>
-            <div className="p-4 rounded-xl border bg-green-50/50 dark:bg-green-950/30 border-green-200 dark:border-green-900/50 shadow-sm">
-              <span className="text-[11px] text-green-700 dark:text-green-300 block mb-0.5 font-medium">Estimated Wealth Gains</span>
-              <span className="text-lg sm:text-xl font-black text-green-600 dark:text-green-400 font-mono">
-                +{formatINR(sipCalc.returns)}
-              </span>
-            </div>
-            <div className="p-4 rounded-xl border bg-primary/10 border-primary/30 shadow-sm">
-              <span className="text-[11px] text-primary block mb-0.5 font-medium">Total Expected Maturity</span>
-              <span className="text-lg sm:text-xl font-black text-primary font-mono">
-                {formatINR(sipCalc.maturity)}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-1.5 p-4 rounded-xl bg-white dark:bg-slate-900 border shadow-sm">
-            <div className="flex justify-between text-xs font-semibold">
-              <span>Invested ({((sipCalc.invested / Math.max(1, sipCalc.maturity)) * 100).toFixed(0)}%)</span>
-              <span className="text-green-600 dark:text-green-400">Gains ({((sipCalc.returns / Math.max(1, sipCalc.maturity)) * 100).toFixed(0)}%)</span>
-            </div>
-            <div className="h-3 w-full bg-green-500 rounded-full overflow-hidden flex">
-              <div
-                className="bg-primary h-full transition-all"
-                style={{ width: `${(sipCalc.invested / Math.max(1, sipCalc.maturity)) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="border rounded-xl overflow-hidden text-xs shadow-sm">
-            <div className="bg-slate-100 dark:bg-slate-800 p-2.5 font-bold text-slate-700 dark:text-slate-300">
-              Milestone Wealth Projections
-            </div>
-            <div className="divide-y">
-              {[1, 3, 5, 10, 15].map((period) => {
-                const res = calculateSIP(sipAmount, period, sipReturnRate);
-                return (
-                  <div key={period} className="flex justify-between items-center p-2.5 bg-white dark:bg-slate-900">
-                    <span className="font-semibold">{period} {period === 1 ? 'Year' : 'Years'}</span>
-                    <span className="text-muted-foreground font-mono">Invested: {formatINR(res.invested)}</span>
-                    <span className="font-bold text-primary font-mono">{formatINR(res.maturity)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <MutualFundInvestmentPlanner
+            fund={fund}
+            onOpenCompare={() => setIsCompareOpen(true)}
+            showProjectionsTable={true}
+          />
 
           <p className="text-[10px] text-muted-foreground italic text-center">
             * Mutual fund investments are subject to market risks. Calculations are illustrative based on compound interest formulas and do not guarantee future returns.
