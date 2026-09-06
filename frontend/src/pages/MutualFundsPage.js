@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getMutualFunds, searchMutualFunds, POPULAR_MUTUAL_FUNDS } from '../services/api';
+import { getMutualFunds, searchMutualFunds, POPULAR_MUTUAL_FUNDS, fetchLiveAmfiNav } from '../services/api';
 import { Button } from '../components/ui/button';
 import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
 import { TelemetryBadge } from '../components/TelemetryBadgeBar';
@@ -215,6 +215,62 @@ function calculateSIP(monthlyInvest, years, returnRate) {
 function generateHistoricalNavData(fund, timeframe = '1Y') {
   if (!fund) return [];
   const currentNav = fund.nav || 100;
+
+  if (Array.isArray(fund.historical_nav) && fund.historical_nav.length > 5) {
+    try {
+      const now = new Date();
+      let daysLimit = 365;
+      if (timeframe === '3M') daysLimit = 90;
+      else if (timeframe === '6M') daysLimit = 180;
+      else if (timeframe === '1Y') daysLimit = 365;
+      else if (timeframe === '2Y') daysLimit = 730;
+      else if (timeframe === '5Y') daysLimit = 1825;
+      else if (timeframe === 'Max') daysLimit = 36500;
+
+      const cutoffTime = now.getTime() - (daysLimit * 24 * 60 * 60 * 1000);
+      
+      const filtered = fund.historical_nav.filter(item => {
+        const parts = item.date.split('-');
+        if (parts.length === 3) {
+          const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          return !isNaN(d.getTime()) && d.getTime() >= cutoffTime;
+        }
+        return false;
+      }).reverse();
+
+      if (filtered.length > 0) {
+        const step = Math.max(1, Math.floor(filtered.length / 55));
+        const sampled = [];
+        for (let i = 0; i < filtered.length; i += step) {
+          const item = filtered[i];
+          const parts = item.date.split('-');
+          const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          const labelDate = d.toLocaleDateString('en-IN', {
+            month: 'short',
+            year: timeframe === '3M' || timeframe === '6M' ? undefined : '2-digit',
+            day: timeframe === '3M' || timeframe === '6M' ? 'numeric' : undefined,
+          });
+          sampled.push({
+            date: labelDate,
+            fullDate: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+            nav: parseFloat(parseFloat(item.nav).toFixed(2)),
+          });
+        }
+        const latest = filtered[filtered.length - 1];
+        const lastParts = latest.date.split('-');
+        const lastD = new Date(`${lastParts[2]}-${lastParts[1]}-${lastParts[0]}`);
+        sampled.push({
+          date: lastD.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
+          fullDate: lastD.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+          nav: parseFloat(parseFloat(latest.nav).toFixed(2)),
+        });
+        return sampled;
+      }
+    } catch (e) {
+      console.warn('Fallback to calculated historical nav', e);
+    }
+  }
+
   const cagr1 = parseFloat(fund.cagr_1yr || 15) / 100;
   const cagr2 = parseFloat(fund.cagr_2yr || fund.cagr_3yr || 18) / 100;
   const cagr3 = parseFloat(fund.cagr_3yr || 20) / 100;
@@ -1256,7 +1312,31 @@ function MutualFundInvestmentPlanner({ fund, onOpenCompare, showProjectionsTable
   );
 }
 
-function MutualFundDetailView({ fund, funds, onBack, onAnalyzeStock }) {
+function MutualFundDetailView({ fund: initialFund, funds, onBack, onAnalyzeStock }) {
+  const [currentFund, setCurrentFund] = useState(initialFund);
+
+  useEffect(() => {
+    setCurrentFund(initialFund);
+    if (initialFund?.scheme_code) {
+      fetchLiveAmfiNav(initialFund.scheme_code).then(live => {
+        if (live) {
+          setCurrentFund(prev => ({
+            ...prev,
+            ...live,
+            nav: live.nav,
+            prev_close: live.prev_close,
+            change: live.change,
+            change_percent: live.change_percent,
+            date: live.date,
+            historical_nav: live.historical_nav,
+          }));
+        }
+      });
+    }
+  }, [initialFund]);
+
+  const fund = currentFund || initialFund;
+
   const availableCagrOptions = useMemo(() => {
     return getAvailableCagrOptions(fund);
   }, [fund]);

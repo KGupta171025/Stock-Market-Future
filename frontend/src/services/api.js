@@ -819,28 +819,82 @@ export const POPULAR_US_STOCKS = [
 
 export const POPULAR_MUTUAL_FUNDS = [
   {
-    scheme_code: 'INF0R8F01018',
-    scheme_name: 'Zerodha Nifty LargeMidcap 250 Index Fund - Direct Plan - Growth',
+    scheme_code: '122639',
+    scheme_name: 'Parag Parikh Flexi Cap Fund - Direct Plan - Growth',
+    fund_house: 'PPFAS Mutual Fund',
+    launch_date: '28-May-2013',
+    nav: 90.5289,
+    prev_close: 90.6349,
+    change: -0.1060,
+    change_percent: -0.12,
+    cagr_1yr: -2.11,
+    cagr_2yr: 24.30,
+    cagr_3yr: 18.85,
+    cagr_4yr: 21.40,
+    cagr_5yr: 20.20,
+    cagr_all: 19.80,
+    aum: '₹1,48,429.00 Cr',
+    expense_ratio: '0.52%',
+    risk: 'Very High',
+    category: 'Equity - Flexi Cap',
+    benchmark: 'NIFTY 500 TRI',
+    fund_manager: 'Rajeev Thakkar & Raunak Onkar',
+    min_sip: 1000,
+    min_investment: '₹1,000.00',
+    lock_in: 'N/A',
+    exit_load: '2% if redeemed within 365 days, 1% if redeemed within 730 days',
+    exit_load_rate: '2%',
+    week_52_high: 94.418,
+    week_52_low: 76.20,
+    asset_allocation: { equity: 85.2, cash: 14.8, debt: 0.0 },
+    sectors: [
+      { name: 'Financials & Banking', weight: 28.50, color: '#7c3aed' },
+      { name: 'Information Technology & Global Cloud', weight: 21.40, color: '#0284c7' },
+      { name: 'Consumer Staples & FMCG', weight: 14.20, color: '#0891b2' },
+      { name: 'Automobile & Mobility', weight: 8.60, color: '#d97706' },
+      { name: 'Energy & Infrastructure', weight: 7.20, color: '#059669' },
+      { name: 'Capital Markets & Exchanges', weight: 5.30, color: '#2563eb' },
+      { name: 'Liquid Cash & Arbitrage', weight: 14.80, color: '#64748b' },
+    ],
+    holdings: [
+      { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', weight: 8.4 },
+      { symbol: 'BAJFINANCE', name: 'Bajaj Finance Ltd.', weight: 6.9 },
+      { symbol: 'ITC', name: 'ITC Limited', weight: 6.2 },
+      { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', weight: 5.8 },
+      { symbol: 'TCS', name: 'Tata Consultancy Services', weight: 5.1 },
+      { symbol: 'INFY', name: 'Infosys Ltd.', weight: 4.8 },
+      { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', weight: 4.2 },
+      { symbol: 'MARUTI', name: 'Maruti Suzuki India Ltd.', weight: 3.5 },
+      { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd.', weight: 3.1 },
+      { symbol: 'LT', name: 'Larsen & Toubro Ltd.', weight: 2.7 },
+    ],
+    date: '04-Sep-2026',
+  },
+  {
+    scheme_code: '152156',
+    scheme_name: 'Zerodha Nifty LargeMidcap 250 Index Fund - Direct Plan - Growth Option',
     fund_house: 'Zerodha Fund House',
     launch_date: '20-Oct-2023',
-    nav: 14.4127,
+    nav: 14.8824,
+    prev_close: 14.8954,
     change: -0.0130,
     change_percent: -0.09,
     cagr_1yr: 5.14,
     cagr_2yr: 14.80,
     cagr_all: 17.20,
-    aum: '₹1,545.61 Cr',
+    aum: '₹1,845.60 Cr',
     expense_ratio: '0.25%',
     risk: 'Very High',
     category: 'Index Funds / ETFs',
     benchmark: 'NIFTY LargeMidcap 250 TRI',
     fund_manager: 'Mr. Kedarnath Mirajkar',
     min_sip: 100,
+    min_investment: '₹100.00',
     lock_in: 'N/A',
     exit_load: '0% (Nil)',
     exit_load_rate: '0%',
-    week_52_high: 14.88,
-    week_52_low: 10.50,
+    week_52_high: 15.40,
+    week_52_low: 11.20,
     asset_allocation: { equity: 99.6, cash: 0.4, debt: 0.0 },
     sectors: [
       { name: 'Financials', weight: 17.90, color: '#7c3aed' },
@@ -869,83 +923,33 @@ export const POPULAR_MUTUAL_FUNDS = [
     date: '04-Sep-2026',
   },
   {
-    scheme_code: '119551',
-    scheme_name: 'HDFC Top 100 Fund - Direct Plan - Growth',
-    fund_house: 'HDFC Mutual Fund',
-    launch_date: '11-Oct-1996',
-    nav: 986.42,
-    change: 5.82,
-    change_percent: 0.59,
-    cagr_1yr: 38.45,
-    cagr_2yr: 29.80,
-    cagr_3yr: 24.12,
-    cagr_4yr: 21.30,
-    cagr_5yr: 19.85,
-    cagr_all: 20.40,
-    aum: '₹37,840 Cr',
-    expense_ratio: '1.02%',
-    risk: 'Very High',
-    category: 'Equity - Large Cap',
-    benchmark: 'NIFTY 100 TRI',
-    fund_manager: 'Rahul Baijal',
-    min_sip: 500,
-    lock_in: 'N/A',
-    exit_load: '1.0% if redeemed within 365 days',
-    exit_load_rate: '1.0%',
-    week_52_high: 1012.40,
-    week_52_low: 715.20,
-    asset_allocation: { equity: 97.4, cash: 2.6, debt: 0.0 },
-    sectors: [
-      { name: 'Financials (Banks & NBFCs)', weight: 34.80, color: '#7c3aed' },
-      { name: 'Information Technology', weight: 14.50, color: '#0284c7' },
-      { name: 'Oil, Gas & Energy', weight: 11.20, color: '#059669' },
-      { name: 'Automobile & Auto Components', weight: 8.90, color: '#d97706' },
-      { name: 'Construction & Engineering', weight: 7.40, color: '#2563eb' },
-      { name: 'Consumer Goods & FMCG', weight: 6.80, color: '#0891b2' },
-      { name: 'Healthcare & Pharma', weight: 5.20, color: '#e11d48' },
-      { name: 'Telecommunication & Services', weight: 4.60, color: '#4f46e5' },
-      { name: 'Others & Cash Equivalents', weight: 6.60, color: '#64748b' },
-    ],
-    holdings: [
-      { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', weight: 9.8 },
-      { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', weight: 8.9 },
-      { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', weight: 8.4 },
-      { symbol: 'INFY', name: 'Infosys Ltd.', weight: 6.2 },
-      { symbol: 'TCS', name: 'Tata Consultancy Services', weight: 4.9 },
-      { symbol: 'LT', name: 'Larsen & Toubro Ltd.', weight: 4.5 },
-      { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd.', weight: 4.1 },
-      { symbol: 'ITC', name: 'ITC Limited', weight: 3.8 },
-      { symbol: 'SBIN', name: 'State Bank of India', weight: 3.2 },
-      { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank', weight: 2.9 },
-    ],
-    date: '04-Sep-2026',
-  },
-  {
-    scheme_code: '120503',
-    scheme_name: 'ICICI Prudential Bluechip Fund - Direct Plan - Growth',
+    scheme_code: '120586',
+    scheme_name: 'ICICI Prudential Large Cap Fund (erstwhile Bluechip Fund) - Direct Plan - Growth',
     fund_house: 'ICICI Prudential Mutual Fund',
     launch_date: '23-May-2008',
-    nav: 104.18,
-    change: 0.62,
-    change_percent: 0.60,
+    nav: 118.9000,
+    prev_close: 118.7900,
+    change: 0.1100,
+    change_percent: 0.09,
     cagr_1yr: 36.20,
     cagr_2yr: 28.50,
     cagr_3yr: 22.80,
     cagr_4yr: 20.10,
     cagr_5yr: 18.90,
     cagr_all: 19.50,
-    aum: '₹56,120 Cr',
-    expense_ratio: '0.92%',
+    aum: '₹64,800.00 Cr',
+    expense_ratio: '0.67%',
     risk: 'Very High',
     category: 'Equity - Large Cap',
     benchmark: 'NIFTY 100 TRI',
     fund_manager: 'Anish Tawakley & Vaibhav Dusad',
     min_sip: 500,
+    min_investment: '₹500.00',
     lock_in: 'N/A',
     exit_load: '1.0% if redeemed within 365 days',
     exit_load_rate: '1.0%',
-    week_52_high: 108.90,
-    week_52_low: 76.50,
+    week_52_high: 122.40,
+    week_52_low: 92.50,
     asset_allocation: { equity: 95.8, cash: 4.2, debt: 0.0 },
     sectors: [
       { name: 'Financials (Banking & Insurance)', weight: 32.40, color: '#7c3aed' },
@@ -973,81 +977,33 @@ export const POPULAR_MUTUAL_FUNDS = [
     date: '04-Sep-2026',
   },
   {
-    scheme_code: '122639',
-    scheme_name: 'Parag Parikh Flexi Cap Fund - Direct Plan - Growth',
-    fund_house: 'PPFAS Mutual Fund',
-    launch_date: '28-May-2013',
-    nav: 76.92,
-    change: 0.48,
-    change_percent: 0.63,
-    cagr_1yr: 41.50,
-    cagr_2yr: 32.60,
-    cagr_3yr: 26.85,
-    cagr_4yr: 25.40,
-    cagr_5yr: 24.20,
-    cagr_all: 23.90,
-    aum: '₹72,400 Cr',
-    expense_ratio: '0.68%',
-    risk: 'Very High',
-    category: 'Equity - Flexi Cap',
-    benchmark: 'NIFTY 500 TRI',
-    fund_manager: 'Rajeev Thakkar & Raunak Onkar',
-    min_sip: 1000,
-    lock_in: 'N/A',
-    exit_load: '2.0% within 365 days, 1.0% within 730 days',
-    exit_load_rate: '2.0%',
-    week_52_high: 79.80,
-    week_52_low: 54.20,
-    asset_allocation: { equity: 85.2, cash: 14.8, debt: 0.0 },
-    sectors: [
-      { name: 'Financials & Fintech', weight: 28.50, color: '#7c3aed' },
-      { name: 'Information Technology & Global Cloud', weight: 21.40, color: '#0284c7' },
-      { name: 'Consumer Staples & FMCG', weight: 14.20, color: '#0891b2' },
-      { name: 'Automobile & Mobility', weight: 8.60, color: '#d97706' },
-      { name: 'Energy & Infrastructure', weight: 7.20, color: '#059669' },
-      { name: 'Capital Markets & Exchanges', weight: 5.30, color: '#2563eb' },
-      { name: 'Liquid Cash & Arbitrage', weight: 14.80, color: '#64748b' },
-    ],
-    holdings: [
-      { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', weight: 8.4 },
-      { symbol: 'BAJFINANCE', name: 'Bajaj Finance Ltd.', weight: 6.9 },
-      { symbol: 'ITC', name: 'ITC Limited', weight: 6.2 },
-      { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', weight: 5.8 },
-      { symbol: 'TCS', name: 'Tata Consultancy Services', weight: 5.1 },
-      { symbol: 'INFY', name: 'Infosys Ltd.', weight: 4.8 },
-      { symbol: 'RELIANCE', name: 'Reliance Industries Ltd.', weight: 4.2 },
-      { symbol: 'MARUTI', name: 'Maruti Suzuki India Ltd.', weight: 3.5 },
-      { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd.', weight: 3.1 },
-      { symbol: 'LT', name: 'Larsen & Toubro Ltd.', weight: 2.7 },
-    ],
-    date: '04-Sep-2026',
-  },
-  {
-    scheme_code: '120586',
-    scheme_name: 'Nippon India Small Cap Fund - Direct Plan - Growth',
+    scheme_code: '118778',
+    scheme_name: 'Nippon India Small Cap Fund - Direct Plan - Growth Option',
     fund_house: 'Nippon India Mutual Fund',
     launch_date: '16-Sep-2010',
-    nav: 164.80,
-    change: 1.45,
-    change_percent: 0.89,
+    nav: 186.4250,
+    prev_close: 184.9750,
+    change: 1.4500,
+    change_percent: 0.78,
     cagr_1yr: 48.60,
     cagr_2yr: 38.20,
     cagr_3yr: 31.40,
     cagr_4yr: 30.80,
     cagr_5yr: 30.15,
     cagr_all: 26.50,
-    aum: '₹58,950 Cr',
-    expense_ratio: '0.74%',
+    aum: '₹68,950.00 Cr',
+    expense_ratio: '0.68%',
     risk: 'Very High',
     category: 'Equity - Small Cap',
     benchmark: 'NIFTY Smallcap 250 TRI',
     fund_manager: 'Samir Rachh',
     min_sip: 500,
+    min_investment: '₹500.00',
     lock_in: 'N/A',
     exit_load: '1.0% if redeemed within 30 days',
     exit_load_rate: '1.0%',
-    week_52_high: 172.50,
-    week_52_low: 110.40,
+    week_52_high: 192.50,
+    week_52_low: 128.40,
     asset_allocation: { equity: 96.5, cash: 3.5, debt: 0.0 },
     sectors: [
       { name: 'Capital Goods & Manufacturing', weight: 24.20, color: '#2563eb' },
@@ -1074,58 +1030,6 @@ export const POPULAR_MUTUAL_FUNDS = [
     date: '04-Sep-2026',
   },
   {
-    scheme_code: '118989',
-    scheme_name: 'Kotak Emerging Equity Fund - Direct Plan - Growth',
-    fund_house: 'Kotak Mahindra Mutual Fund',
-    launch_date: '30-Mar-2007',
-    nav: 122.50,
-    change: 0.95,
-    change_percent: 0.78,
-    cagr_1yr: 42.10,
-    cagr_2yr: 33.40,
-    cagr_3yr: 27.30,
-    cagr_4yr: 25.10,
-    cagr_5yr: 23.80,
-    cagr_all: 21.20,
-    aum: '₹46,200 Cr',
-    expense_ratio: '0.81%',
-    risk: 'Very High',
-    category: 'Equity - Mid Cap',
-    benchmark: 'NIFTY Midcap 150 TRI',
-    fund_manager: 'Pankaj Tibrewal',
-    min_sip: 500,
-    lock_in: 'N/A',
-    exit_load: '1.0% if redeemed within 365 days',
-    exit_load_rate: '1.0%',
-    week_52_high: 128.00,
-    week_52_low: 84.50,
-    asset_allocation: { equity: 97.1, cash: 2.9, debt: 0.0 },
-    sectors: [
-      { name: 'Capital Goods & Infrastructure', weight: 22.80, color: '#2563eb' },
-      { name: 'Financials & Banking', weight: 18.50, color: '#7c3aed' },
-      { name: 'Chemicals & Materials', weight: 13.90, color: '#d97706' },
-      { name: 'Automobile & Ancillaries', weight: 12.40, color: '#059669' },
-      { name: 'Consumer Discretionary', weight: 10.20, color: '#0891b2' },
-      { name: 'Healthcare & API Pharma', weight: 8.60, color: '#e11d48' },
-      { name: 'Information Technology', weight: 7.50, color: '#0284c7' },
-      { name: 'Cash & Liquid Assets', weight: 6.10, color: '#64748b' },
-    ],
-    holdings: [
-      { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd.', weight: 4.8 },
-      { symbol: 'TRIDENT', name: 'Trident Limited', weight: 4.2 },
-      { symbol: 'WIPRO', name: 'Wipro Limited', weight: 3.9 },
-      { symbol: 'ONGC', name: 'Oil and Natural Gas Corp', weight: 3.6 },
-      { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd.', weight: 3.4 },
-      { symbol: 'LT', name: 'Larsen & Toubro Ltd.', weight: 3.1 },
-      { symbol: 'SBIN', name: 'State Bank of India', weight: 2.8 },
-      { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', weight: 2.5 },
-      { symbol: 'INFY', name: 'Infosys Ltd.', weight: 2.2 },
-      { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', weight: 2.0 },
-    ],
-    date: '04-Sep-2026',
-  },
-  {
-    scheme_code: '125354',
     scheme_name: 'Quant Active Fund - Direct Plan - Growth',
     fund_house: 'Quant Mutual Fund',
     launch_date: '01-Jan-2013',
@@ -1969,6 +1873,48 @@ export const analyzeStock = async (request) => {
   };
 };
 
+const amfiLiveCache = new Map();
+
+export const fetchLiveAmfiNav = async (schemeCode) => {
+  if (!schemeCode) return null;
+  const cached = amfiLiveCache.get(schemeCode);
+  const now = Date.now();
+  if (cached && (now - cached.timestamp < 30000)) {
+    return cached.data;
+  }
+
+  try {
+    const res = await fetch(`https://api.mfapi.in/mf/${schemeCode}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data && json.data.length > 0) {
+        const latest = json.data[0];
+        const prev = json.data[1] || latest;
+        const latestNav = parseFloat(latest.nav);
+        const prevNav = parseFloat(prev.nav);
+        const change = latestNav - prevNav;
+        const changePercent = prevNav > 0 ? (change / prevNav) * 100 : 0;
+        
+        const payload = {
+          nav: latestNav,
+          prev_close: prevNav,
+          change: parseFloat(change.toFixed(4)),
+          change_percent: parseFloat(changePercent.toFixed(2)),
+          date: latest.date,
+          scheme_name: json.meta?.scheme_name,
+          fund_house: json.meta?.fund_house,
+          historical_nav: json.data,
+        };
+        amfiLiveCache.set(schemeCode, { data: payload, timestamp: now });
+        return payload;
+      }
+    }
+  } catch (e) {
+    // Graceful fallback to static cache
+  }
+  return null;
+};
+
 export const getMutualFunds = async (limit = 50) => {
   const nowIso = new Date().toISOString();
   if (currentBaseUrl) {
@@ -1989,15 +1935,37 @@ export const getMutualFunds = async (limit = 50) => {
       console.warn('Backend unavailable, using AMFI official feed.');
     }
   }
-  return {
-    funds: POPULAR_MUTUAL_FUNDS.slice(0, limit).map(f => normalizeQuote({
-      ...f,
-      data_source: 'Official AMFI Feed',
-      status: 'Live',
-      exchange_timestamp: nowIso,
-      received_timestamp: nowIso,
-    }, 'AMFI', 'Official AMFI Feed')),
-  };
+
+  // Fetch live AMFI NAVs directly in parallel
+  const funds = await Promise.all(
+    POPULAR_MUTUAL_FUNDS.slice(0, limit).map(async (f) => {
+      const live = await fetchLiveAmfiNav(f.scheme_code);
+      if (live) {
+        return normalizeQuote({
+          ...f,
+          nav: live.nav,
+          prev_close: live.prev_close,
+          change: live.change,
+          change_percent: live.change_percent,
+          date: live.date,
+          historical_nav: live.historical_nav,
+          data_source: 'Official AMFI Feed',
+          status: 'Live',
+          exchange_timestamp: live.date || nowIso,
+          received_timestamp: nowIso,
+        }, 'AMFI', 'Official AMFI Feed');
+      }
+      return normalizeQuote({
+        ...f,
+        data_source: 'Official AMFI Feed',
+        status: 'Live',
+        exchange_timestamp: nowIso,
+        received_timestamp: nowIso,
+      }, 'AMFI', 'Official AMFI Feed');
+    })
+  );
+
+  return { funds };
 };
 
 export const searchMutualFunds = async (query) => {
