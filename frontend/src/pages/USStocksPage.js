@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
 import { TelemetryBadge } from '../components/TelemetryBadgeBar';
 
-const US_SECTOR_CATEGORIES = ['All', 'Mega-Tech', 'Semiconductors', 'Finance', 'EV & Auto', 'Consumer & Retail', 'ETFs'];
+const US_SECTOR_CATEGORIES = ['All', 'Upcoming IPOs', 'Mega-Tech', 'Semiconductors', 'Finance', 'EV & Auto', 'Consumer & Retail', 'ETFs'];
 
 export default function USStocksPage() {
   const [indices, setIndices] = useState([]);
@@ -137,10 +137,14 @@ export default function USStocksPage() {
     const matchesSearch =
       stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
       stock.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (stock.sector && stock.sector.toLowerCase().includes(searchQuery.toLowerCase()));
+      (stock.sector && stock.sector.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (stock.category && stock.category.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!matchesSearch) return false;
     if (selectedCategory === 'All') return true;
+    if (selectedCategory === 'Upcoming IPOs') {
+      return stock.category === 'Upcoming IPO' || stock.ipo_status || (stock.exchange && stock.exchange.includes('Upcoming'));
+    }
     return (stock.category || '').toLowerCase() === selectedCategory.toLowerCase() ||
            (stock.sector || '').toLowerCase().includes(selectedCategory.toLowerCase());
   });
@@ -383,24 +387,33 @@ export default function USStocksPage() {
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <CardTitle className="text-base font-bold group-hover:text-primary transition-colors">
                               {stock.symbol}
                             </CardTitle>
-                            <Badge variant="outline" className="text-[10px] font-mono">
-                              {stock.exchange || 'NASDAQ'}
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] font-mono ${
+                                stock.category === 'Upcoming IPO'
+                                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-300'
+                                  : ''
+                              }`}
+                            >
+                              {stock.category === 'Upcoming IPO' ? '🚀 Upcoming IPO' : (stock.exchange || 'NASDAQ')}
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{stock.name}</p>
                         </div>
-                        <TelemetryBadge source={stock.data_source || 'Global Market Feed'} status={stock.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')} />
+                        <TelemetryBadge source={stock.category === 'Upcoming IPO' ? 'SEC S-1 Prospectus' : (stock.data_source || 'Global Market Feed')} status={stock.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')} />
                       </div>
                     </CardHeader>
 
                     <CardContent className="pt-2">
                       <div className="flex justify-between items-baseline mb-3 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-border/40">
                         <div>
-                          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Last Traded Price</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+                            {stock.category === 'Upcoming IPO' ? 'Est. Listing / Target' : 'Last Traded Price'}
+                          </span>
                           <span className={`text-2xl font-black font-mono transition-colors duration-300 ${
                             flash === 'up' ? 'text-emerald-600 dark:text-emerald-400' : flash === 'down' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'
                           }`}>
@@ -408,34 +421,48 @@ export default function USStocksPage() {
                           </span>
                         </div>
                         <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                          isPositive 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
-                            : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+                          stock.category === 'Upcoming IPO'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
+                            : isPositive 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
+                              : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
                         }`}>
-                          {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                          {stock.category === 'Upcoming IPO' ? <Sparkles className="h-3.5 w-3.5" /> : isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                           <span>
-                            {isPositive ? '+' : ''}{stock.change?.toFixed(2)} ({isPositive ? '+' : ''}{stock.change_percent?.toFixed(2)}%)
+                            {stock.category === 'Upcoming IPO'
+                              ? `GMP ${stock.gmp || `+${stock.change_percent}%`}`
+                              : `${isPositive ? '+' : ''}${stock.change?.toFixed(2)} (${isPositive ? '+' : ''}${stock.change_percent?.toFixed(2)}%)`
+                            }
                           </span>
                         </div>
                       </div>
 
-                      {/* Day Intraday Range Meter */}
+                      {/* Day Intraday / Issue Range Meter */}
                       <div className="mb-3 space-y-1">
                         <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                          <span>Low: ${stock.low || (stock.price * 0.985).toFixed(2)}</span>
-                          <span>High: ${stock.high || (stock.price * 1.015).toFixed(2)}</span>
+                          <span>{stock.category === 'Upcoming IPO' ? `Band Min: $${stock.low}` : `Low: $${stock.low || (stock.price * 0.985).toFixed(2)}`}</span>
+                          <span>{stock.category === 'Upcoming IPO' ? `Band Max: $${stock.high}` : `High: $${stock.high || (stock.price * 1.015).toFixed(2)}`}</span>
                         </div>
                         <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all ${isPositive ? 'bg-green-500' : 'bg-red-500'}`}
+                            className={`h-full rounded-full transition-all ${stock.category === 'Upcoming IPO' ? 'bg-purple-500' : isPositive ? 'bg-green-500' : 'bg-red-500'}`}
                             style={{ width: `${rangePercent}%` }}
                           />
                         </div>
                       </div>
 
                       <div className="flex justify-between items-center text-[11px] text-muted-foreground pt-2 border-t border-border/40">
-                        <span>Vol: <strong className="text-slate-800 dark:text-slate-200">{stock.volume || '15.4M'}</strong></span>
-                        <span>M-Cap: <strong className="text-slate-800 dark:text-slate-200">{stock.market_cap || '$1.2T'}</strong></span>
+                        {stock.category === 'Upcoming IPO' ? (
+                          <>
+                            <span>Lot: <strong className="text-purple-600 dark:text-purple-400 font-semibold">{stock.lot_size || 10} shares</strong></span>
+                            <span>Est Val: <strong className="text-slate-800 dark:text-slate-200">{stock.market_cap || '$50B'}</strong></span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Vol: <strong className="text-slate-800 dark:text-slate-200">{stock.volume || '15.4M'}</strong></span>
+                            <span>M-Cap: <strong className="text-slate-800 dark:text-slate-200">{stock.market_cap || '$1.2T'}</strong></span>
+                          </>
+                        )}
                         <span className="text-primary font-semibold flex items-center gap-0.5 group-hover:underline">
                           Analyze <ArrowUpRight className="h-3.5 w-3.5" />
                         </span>
