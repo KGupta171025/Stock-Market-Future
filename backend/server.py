@@ -122,6 +122,62 @@ async def get_indices():
     return {"indices": indices}
 
 
+@api_router.get("/us/market/status")
+async def get_us_market_status():
+    """Get US market status"""
+    from datetime import datetime
+    import pytz
+    try:
+        et = pytz.timezone('US/Eastern')
+        now_et = datetime.now(et)
+        is_weekday = now_et.weekday() < 5
+        market_open_time = now_et.replace(hour=9, minute=30, second=0, microsecond=0)
+        market_close_time = now_et.replace(hour=16, minute=0, second=0, microsecond=0)
+        is_open = is_weekday and (market_open_time <= now_et <= market_close_time)
+        return {
+            "is_open": is_open,
+            "market": "NYSE/NASDAQ (US)",
+            "current_time_est": now_et.strftime('%I:%M:%S %p %Z'),
+            "session": "Regular Trading" if is_open else "Market Closed",
+            "status": "Live" if is_open else "Market Closed"
+        }
+    except Exception:
+        return {
+            "is_open": False,
+            "market": "NYSE/NASDAQ (US)",
+            "session": "Market Closed",
+            "status": "Market Closed"
+        }
+
+
+@api_router.get("/us/stocks/list")
+async def get_us_stocks():
+    """Get list of popular US stocks"""
+    stocks = market_data.get_us_stocks()
+    return {"stocks": stocks}
+
+
+@api_router.get("/us/indices")
+async def get_us_indices():
+    """Get popular US indices"""
+    indices = [
+        {"symbol": "S&P 500", "name": "S&P 500 Benchmark Index", "exchange": "NYSE/NASDAQ Index", "price": 5782.50, "change": 38.40, "change_percent": 0.67, "currency": "USD"},
+        {"symbol": "NASDAQ", "name": "NASDAQ Composite Index", "exchange": "NASDAQ Index", "price": 18342.80, "change": 154.20, "change_percent": 0.85, "currency": "USD"},
+        {"symbol": "DOW JONES", "name": "Dow Jones Industrial Average", "exchange": "NYSE Index", "price": 42114.20, "change": 134.80, "change_percent": 0.32, "currency": "USD"},
+        {"symbol": "RUSSELL 2000", "name": "Russell 2000 Small-Cap Index", "exchange": "US Index", "price": 2220.40, "change": 9.80, "change_percent": 0.44, "currency": "USD"}
+    ]
+    return {"indices": indices}
+
+
+@api_router.get("/us/stocks/search")
+async def search_us_stocks(q: str):
+    """Search US stocks"""
+    stocks = market_data.get_us_stocks()
+    query_lower = q.lower()
+    filtered = [s for s in stocks if query_lower in s['symbol'].lower() or query_lower in s['name'].lower()]
+    return {"results": filtered}
+
+
 @api_router.post("/analysis/analyze")
 async def analyze_stock(request: AnalysisRequest):
     """

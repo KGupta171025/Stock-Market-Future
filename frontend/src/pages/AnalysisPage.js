@@ -127,8 +127,9 @@ export default function AnalysisPage() {
       
       const result = await analyzeStock(request);
       
-      // Calculate price flash
-      if (prevPriceRef.current !== null && prevPriceRef.current !== result.current_price) {
+      // Calculate price flash only when price actually changes
+      const priceChanged = prevPriceRef.current !== null && prevPriceRef.current !== result.current_price;
+      if (priceChanged) {
         const direction = result.current_price > prevPriceRef.current ? 'up' : 'down';
         setPriceFlash(direction);
         setTimeout(() => setPriceFlash(null), 700);
@@ -138,8 +139,8 @@ export default function AnalysisPage() {
       setAnalysis(result);
       setLastUpdated(Date.now());
 
-      // If chart is already mounted, smoothly update series data
-      if (seriesRef.current && chartRef.current && isSilent && result.chart_data) {
+      // If chart is already mounted, update series data only when live ticks change candle data
+      if (seriesRef.current && chartRef.current && isSilent && priceChanged && result.chart_data) {
         const sanitized = sanitizeCandles(result.chart_data);
         if (sanitized.length > 0) {
           if (chartTypeRef.current === 'line') {
