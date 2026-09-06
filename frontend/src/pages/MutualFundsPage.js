@@ -55,7 +55,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CATEGORIES = ['All', 'Index Funds', 'Large Cap', 'Flexi Cap', 'Small Cap', 'Mid Cap', 'Multi Cap', 'Thematic'];
+const CATEGORIES = ['All', 'Upcoming NFOs', 'Index Funds', 'Large Cap', 'Flexi Cap', 'Small Cap', 'Mid Cap', 'Multi Cap', 'Thematic'];
 
 const DEFAULT_SECTORS = [
   { name: 'Financials (Banking & NBFCs)', weight: 32.40, color: '#7c3aed' },
@@ -1970,7 +1970,16 @@ export default function MutualFundsPage() {
   }, [schemeCode, funds]);
 
   const filteredFunds = funds.filter(fund => {
+    const matchesSearch =
+      (fund.scheme_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (fund.fund_house || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (fund.category || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
     if (selectedCategory === 'All') return true;
+    if (selectedCategory === 'Upcoming NFOs') {
+      return fund.category === 'Upcoming NFO' || fund.nfo_status || (fund.scheme_name && fund.scheme_name.includes('Upcoming NFO'));
+    }
     return (fund.category || '').toLowerCase().includes(selectedCategory.toLowerCase());
   });
 
@@ -2118,10 +2127,17 @@ export default function MutualFundsPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                          <Badge variant="secondary" className="text-[11px] font-semibold bg-primary/10 text-primary border-transparent">
-                            {fund.category || 'Equity'}
+                          <Badge 
+                            variant="secondary" 
+                            className={`text-[11px] font-semibold border-transparent ${
+                              fund.category === 'Upcoming NFO'
+                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-300'
+                                : 'bg-primary/10 text-primary'
+                            }`}
+                          >
+                            {fund.category === 'Upcoming NFO' ? '🚀 Upcoming NFO' : (fund.category || 'Equity')}
                           </Badge>
-                          <TelemetryBadge source={fund.data_source || 'Official AMFI Feed'} status={fund.status || 'Live'} />
+                          <TelemetryBadge source={fund.category === 'Upcoming NFO' ? 'AMFI NFO Prospectus' : (fund.data_source || 'Official AMFI Feed')} status={fund.status || 'Live'} />
                           {fund.risk && (
                             <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded text-[10px] font-medium flex items-center gap-1">
                               <Shield className="h-3 w-3" /> {fund.risk}
@@ -2133,40 +2149,47 @@ export default function MutualFundsPage() {
                       <CardContent className="pt-2">
                         <div className="flex justify-between items-baseline mb-3 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-border/40">
                           <div>
-                            <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Current NAV (LTP)</span>
+                            <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+                              {fund.category === 'Upcoming NFO' ? 'NFO Issue Base NAV' : 'Current NAV (LTP)'}
+                            </span>
                             <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                               ₹{typeof fundNav === 'number' ? fundNav.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : fundNav}
                             </span>
                           </div>
                           <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                            isPositive 
-                              ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
-                              : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+                            fund.category === 'Upcoming NFO'
+                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
+                              : isPositive 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
+                                : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
                           }`}>
-                            {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                            {fund.category === 'Upcoming NFO' ? <Sparkles className="h-3.5 w-3.5" /> : isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                             <span>
-                              {isPositive ? '+' : ''}{(fund.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(fund.change_percent || 0).toFixed(2)}%)
+                              {fund.category === 'Upcoming NFO'
+                                ? 'New Issue'
+                                : `${isPositive ? '+' : ''}${(fund.change || 0).toFixed(2)} (${isPositive ? '+' : ''}${(fund.change_percent || 0).toFixed(2)}%)`
+                              }
                             </span>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 mb-3 text-center">
                           <div className="p-1.5 rounded bg-slate-50 dark:bg-slate-800/40 border border-border/40">
-                            <span className="text-[10px] text-muted-foreground block">1Y Return</span>
+                            <span className="text-[10px] text-muted-foreground block">{fund.category === 'Upcoming NFO' ? 'Target CAGR' : '1Y Return'}</span>
                             <span className="text-xs font-bold text-green-600 dark:text-green-400">
                               +{fund.cagr_1yr || '34.5'}%
                             </span>
                           </div>
                           <div className="p-1.5 rounded bg-slate-50 dark:bg-slate-800/40 border border-border/40">
-                            <span className="text-[10px] text-muted-foreground block">3Y CAGR</span>
-                            <span className="text-xs font-bold text-green-600 dark:text-green-400">
-                              +{fund.cagr_3yr || '22.8'}%
+                            <span className="text-[10px] text-muted-foreground block">{fund.category === 'Upcoming NFO' ? 'Min. SIP' : '3Y CAGR'}</span>
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                              {fund.category === 'Upcoming NFO' ? `₹${fund.min_sip || 100}` : `+${fund.cagr_3yr || '22.8'}%`}
                             </span>
                           </div>
                           <div className="p-1.5 rounded bg-slate-50 dark:bg-slate-800/40 border border-border/40">
-                            <span className="text-[10px] text-muted-foreground block">AUM</span>
+                            <span className="text-[10px] text-muted-foreground block">{fund.category === 'Upcoming NFO' ? 'Exit Load' : 'AUM'}</span>
                             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                              {fund.aum || '₹25,000 Cr'}
+                              {fund.category === 'Upcoming NFO' ? (fund.exit_load_rate || '0.0%') : (fund.aum || '₹25,000 Cr')}
                             </span>
                           </div>
                         </div>

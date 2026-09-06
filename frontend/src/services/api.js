@@ -3170,6 +3170,341 @@ export const POPULAR_MUTUAL_FUNDS = [
         "weight": 2.7
       }
     ]
+  },
+  {
+    "scheme_code": "NFO-ZERODHA-GOLD",
+    "scheme_name": "Zerodha Gold ETF Fund of Funds - Direct Plan - Growth (Upcoming NFO)",
+    "fund_house": "Zerodha Mutual Fund",
+    "launch_date": "10-Sep-2026",
+    "nav": 10.0,
+    "prev_close": 10.0,
+    "change": 0.0,
+    "change_percent": 0.0,
+    "cagr_1yr": 16.5,
+    "cagr_2yr": 15.2,
+    "cagr_3yr": 14.8,
+    "cagr_5yr": 13.9,
+    "cagr_all": 15.5,
+    "aum": "Target AUM: \u20b91,500 Cr",
+    "expense_ratio": "0.15%",
+    "risk": "Moderate",
+    "category": "Upcoming NFO",
+    "benchmark": "Domestic Price of Physical Gold",
+    "fund_manager": "Chirag Joshi",
+    "min_sip": 100,
+    "min_investment": "\u20b9100.00",
+    "lock_in": "N/A",
+    "exit_load": "0% (Nil)",
+    "exit_load_rate": "0.00%",
+    "week_52_high": 10.0,
+    "week_52_low": 10.0,
+    "date": "10-Sep-2026",
+    "nfo_status": "Upcoming NFO",
+    "nfo_price": "\u20b910.00 per unit",
+    "asset_allocation": {
+      "equity": 0.0,
+      "cash": 2.0,
+      "debt": 98.0
+    },
+    "sectors": [
+      {
+        "name": "Physical Gold Bullion",
+        "weight": 98.0,
+        "color": "#d97706"
+      },
+      {
+        "name": "Cash & Liquid Treps",
+        "weight": 2.0,
+        "color": "#64748b"
+      }
+    ],
+    "holdings": [
+      {
+        "symbol": "GOLD",
+        "name": "Physical Gold 99.9% Purity",
+        "weight": 98.0
+      }
+    ]
+  },
+  {
+    "scheme_code": "NFO-GROWW-CONSUMER",
+    "scheme_name": "Groww Nifty Non-Cyclical Consumer Index Fund - Direct Plan (Upcoming NFO)",
+    "fund_house": "Groww Mutual Fund",
+    "launch_date": "12-Sep-2026",
+    "nav": 10.0,
+    "prev_close": 10.0,
+    "change": 0.0,
+    "change_percent": 0.0,
+    "cagr_1yr": 18.2,
+    "cagr_2yr": 16.4,
+    "cagr_3yr": 15.1,
+    "cagr_5yr": 14.2,
+    "cagr_all": 17.1,
+    "aum": "Target AUM: \u20b92,000 Cr",
+    "expense_ratio": "0.20%",
+    "risk": "Very High",
+    "category": "Upcoming NFO",
+    "benchmark": "NIFTY Non-Cyclical Consumer TRI",
+    "fund_manager": "Abhishek Jain",
+    "min_sip": 500,
+    "min_investment": "\u20b9500.00",
+    "lock_in": "N/A",
+    "exit_load": "0% (Nil)",
+    "exit_load_rate": "0.00%",
+    "week_52_high": 10.0,
+    "week_52_low": 10.0,
+    "date": "12-Sep-2026",
+    "nfo_status": "Upcoming NFO",
+    "nfo_price": "\u20b910.00 per unit",
+    "asset_allocation": {
+      "equity": 98.5,
+      "cash": 1.5,
+      "debt": 0.0
+    },
+    "sectors": [
+      {
+        "name": "FMCG & Staples",
+        "weight": 42.5,
+        "color": "#0891b2"
+      },
+      {
+        "name": "Consumer Discretionary",
+        "weight": 34.2,
+        "color": "#7c3aed"
+      },
+      {
+        "name": "Healthcare & Pharma",
+        "weight": 21.8,
+        "color": "#e11d48"
+      }
+    ],
+    "holdings": [
+      {
+        "symbol": "ITC",
+        "name": "ITC Limited",
+        "weight": 18.4
+      },
+      {
+        "symbol": "HINDUNILVR",
+        "name": "Hindustan Unilever Ltd.",
+        "weight": 16.2
+      },
+      {
+        "symbol": "NESTLEIND",
+        "name": "Nestle India Ltd.",
+        "weight": 11.5
+      }
+    ]
+  },
+  {
+    "scheme_code": "NFO-MOTILAL-DIGITAL",
+    "scheme_name": "Motilal Oswal Digital India & AI Fund - Direct Growth (Upcoming NFO)",
+    "fund_house": "Motilal Oswal Mutual Fund",
+    "launch_date": "15-Sep-2026",
+    "nav": 10.0,
+    "prev_close": 10.0,
+    "change": 0.0,
+    "change_percent": 0.0,
+    "cagr_1yr": 28.5,
+    "cagr_2yr": 24.1,
+    "cagr_3yr": 21.8,
+    "cagr_5yr": 19.5,
+    "cagr_all": 23.4,
+    "aum": "Target AUM: \u20b93,500 Cr",
+    "expense_ratio": "0.65%",
+    "risk": "Very High",
+    "category": "Upcoming NFO",
+    "benchmark": "BSE Digital India TRI",
+    "fund_manager": "Niket Shah",
+    "min_sip": 500,
+    "min_investment": "\u20b9500.00",
+    "lock_in": "N/A",
+    "exit_load": "1% if redeemed within 365 days",
+    "exit_load_rate": "1.00%",
+    "week_52_high": 10.0,
+    "week_52_low": 10.0,
+    "date": "15-Sep-2026",
+    "nfo_status": "Upcoming NFO",
+    "nfo_price": "\u20b910.00 per unit",
+    "asset_allocation": {
+      "equity": 96.0,
+      "cash": 4.0,
+      "debt": 0.0
+    },
+    "sectors": [
+      {
+        "name": "Enterprise AI & Cloud IT",
+        "weight": 48.0,
+        "color": "#0284c7"
+      },
+      {
+        "name": "Fintech & Digital Payments",
+        "weight": 28.0,
+        "color": "#7c3aed"
+      },
+      {
+        "name": "Telecom & Digital Infra",
+        "weight": 20.0,
+        "color": "#059669"
+      }
+    ],
+    "holdings": [
+      {
+        "symbol": "TCS",
+        "name": "Tata Consultancy Services",
+        "weight": 14.5
+      },
+      {
+        "symbol": "INFY",
+        "name": "Infosys Ltd.",
+        "weight": 13.8
+      },
+      {
+        "symbol": "PERSISTENT",
+        "name": "Persistent Systems Ltd.",
+        "weight": 8.5
+      }
+    ]
+  },
+  {
+    "scheme_code": "NFO-ICICI-ENERGY",
+    "scheme_name": "ICICI Prudential Energy & Clean Transition Fund - Direct Growth (Upcoming NFO)",
+    "fund_house": "ICICI Prudential Mutual Fund",
+    "launch_date": "18-Sep-2026",
+    "nav": 10.0,
+    "prev_close": 10.0,
+    "change": 0.0,
+    "change_percent": 0.0,
+    "cagr_1yr": 26.4,
+    "cagr_2yr": 22.8,
+    "cagr_3yr": 19.5,
+    "cagr_5yr": 18.2,
+    "cagr_all": 21.0,
+    "aum": "Target AUM: \u20b94,000 Cr",
+    "expense_ratio": "0.70%",
+    "risk": "Very High",
+    "category": "Upcoming NFO",
+    "benchmark": "NIFTY Energy TRI",
+    "fund_manager": "Sankaran Naren",
+    "min_sip": 500,
+    "min_investment": "\u20b9500.00",
+    "lock_in": "N/A",
+    "exit_load": "1% if redeemed within 365 days",
+    "exit_load_rate": "1.00%",
+    "week_52_high": 10.0,
+    "week_52_low": 10.0,
+    "date": "18-Sep-2026",
+    "nfo_status": "Upcoming NFO",
+    "nfo_price": "\u20b910.00 per unit",
+    "asset_allocation": {
+      "equity": 97.0,
+      "cash": 3.0,
+      "debt": 0.0
+    },
+    "sectors": [
+      {
+        "name": "Solar & Green Energy",
+        "weight": 38.0,
+        "color": "#059669"
+      },
+      {
+        "name": "Power Utilities & Grid",
+        "weight": 32.0,
+        "color": "#d97706"
+      },
+      {
+        "name": "Oil, Gas & Biofuels",
+        "weight": 27.0,
+        "color": "#2563eb"
+      }
+    ],
+    "holdings": [
+      {
+        "symbol": "RELIANCE",
+        "name": "Reliance Industries Ltd.",
+        "weight": 15.0
+      },
+      {
+        "symbol": "TATAPOWER",
+        "name": "Tata Power Ltd.",
+        "weight": 12.5
+      },
+      {
+        "symbol": "NTPC",
+        "name": "NTPC Limited",
+        "weight": 11.2
+      }
+    ]
+  },
+  {
+    "scheme_code": "NFO-HDFC-MFG",
+    "scheme_name": "HDFC Manufacturing & Defense Fund - Direct Growth (Upcoming NFO)",
+    "fund_house": "HDFC Mutual Fund",
+    "launch_date": "22-Sep-2026",
+    "nav": 10.0,
+    "prev_close": 10.0,
+    "change": 0.0,
+    "change_percent": 0.0,
+    "cagr_1yr": 25.8,
+    "cagr_2yr": 21.4,
+    "cagr_3yr": 18.9,
+    "cagr_5yr": 17.5,
+    "cagr_all": 20.5,
+    "aum": "Target AUM: \u20b95,500 Cr",
+    "expense_ratio": "0.68%",
+    "risk": "Very High",
+    "category": "Upcoming NFO",
+    "benchmark": "NIFTY India Manufacturing TRI",
+    "fund_manager": "Prashant Jain",
+    "min_sip": 500,
+    "min_investment": "\u20b9500.00",
+    "lock_in": "N/A",
+    "exit_load": "1% if redeemed within 365 days",
+    "exit_load_rate": "1.00%",
+    "week_52_high": 10.0,
+    "week_52_low": 10.0,
+    "date": "22-Sep-2026",
+    "nfo_status": "Upcoming NFO",
+    "nfo_price": "\u20b910.00 per unit",
+    "asset_allocation": {
+      "equity": 96.5,
+      "cash": 3.5,
+      "debt": 0.0
+    },
+    "sectors": [
+      {
+        "name": "Capital Goods & Defense",
+        "weight": 42.0,
+        "color": "#2563eb"
+      },
+      {
+        "name": "Automobile & Auto Ancillaries",
+        "weight": 32.0,
+        "color": "#d97706"
+      },
+      {
+        "name": "Metals & Precision Engineering",
+        "weight": 22.5,
+        "color": "#7c3aed"
+      }
+    ],
+    "holdings": [
+      {
+        "symbol": "LT",
+        "name": "Larsen & Toubro Ltd.",
+        "weight": 14.2
+      },
+      {
+        "symbol": "HAL",
+        "name": "Hindustan Aeronautics Ltd.",
+        "weight": 11.5
+      },
+      {
+        "symbol": "TATAMOTORS",
+        "name": "Tata Motors Ltd.",
+        "weight": 9.8
+      }
+    ]
   }
 ];
 
