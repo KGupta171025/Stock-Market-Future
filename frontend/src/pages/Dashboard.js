@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import LiveAutoRefreshBar from '../components/LiveAutoRefreshBar';
 import { TelemetryBadge } from '../components/TelemetryBadgeBar';
 
-const SECTOR_CATEGORIES = ['All', 'Banking', 'IT', 'Energy', 'FMCG', 'Auto', 'ETFs', 'Large Cap'];
+const SECTOR_CATEGORIES = ['All', 'Upcoming IPOs', 'Banking', 'IT', 'Energy', 'FMCG', 'Auto', 'ETFs', 'Large Cap'];
 
 export default function Dashboard() {
   const [indices, setIndices] = useState([]);
@@ -119,10 +119,14 @@ export default function Dashboard() {
     const matchesSearch = 
       stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
       stock.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (stock.sector && stock.sector.toLowerCase().includes(searchQuery.toLowerCase()));
+      (stock.sector && stock.sector.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (stock.category && stock.category.toLowerCase().includes(searchQuery.toLowerCase()));
     
     if (!matchesSearch) return false;
     if (selectedCategory === 'All') return true;
+    if (selectedCategory === 'Upcoming IPOs') {
+      return stock.category === 'Upcoming IPO' || stock.ipo_status || (stock.exchange && stock.exchange.includes('Upcoming'));
+    }
     if (selectedCategory === 'Large Cap') return stock.category === 'Large Cap' || !stock.category;
     return (stock.category || '').toLowerCase() === selectedCategory.toLowerCase() ||
            (stock.sector || '').toLowerCase().includes(selectedCategory.toLowerCase());
@@ -364,17 +368,21 @@ export default function Dashboard() {
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <CardTitle className="text-lg font-bold group-hover:text-primary transition-colors">
                               {stock.symbol}
                             </CardTitle>
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                              {stock.exchange || 'NSE'}
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                              stock.category === 'Upcoming IPO' 
+                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800' 
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            }`}>
+                              {stock.category === 'Upcoming IPO' ? '🚀 Upcoming IPO' : (stock.exchange || 'NSE')}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{stock.name}</p>
                         </div>
-                        <TelemetryBadge source={stock.data_source || 'Exchange Real-Time Feed'} status={stock.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')} />
+                        <TelemetryBadge source={stock.category === 'Upcoming IPO' ? 'Official IPO Prospectus' : (stock.data_source || 'Exchange Real-Time Feed')} status={stock.status || (marketStatus?.is_open ? 'Live' : 'Market Closed')} />
                       </div>
                     </CardHeader>
 
@@ -382,7 +390,9 @@ export default function Dashboard() {
                       {/* LTP & Price Change */}
                       <div className="flex justify-between items-baseline mb-3">
                         <div>
-                          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Last Traded Price</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+                            {stock.category === 'Upcoming IPO' ? 'Expected Listing / Cap' : 'Last Traded Price'}
+                          </span>
                           <span className={`text-2xl font-bold transition-colors duration-300 ${
                             flash === 'up' ? 'text-emerald-600 dark:text-emerald-400' : flash === 'down' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'
                           }`}>
@@ -390,26 +400,31 @@ export default function Dashboard() {
                           </span>
                         </div>
                         <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                          isPositive 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
-                            : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+                          stock.category === 'Upcoming IPO'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
+                            : isPositive 
+                              ? 'bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300' 
+                              : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
                         }`}>
-                          {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                          {stock.category === 'Upcoming IPO' ? <Sparkles className="h-3.5 w-3.5" /> : isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                           <span>
-                            {isPositive ? '+' : ''}{stock.change?.toFixed(2)} ({isPositive ? '+' : ''}{stock.change_percent?.toFixed(2)}%)
+                            {stock.category === 'Upcoming IPO' 
+                              ? `GMP ${stock.gmp || `+${stock.change_percent}%`}`
+                              : `${isPositive ? '+' : ''}${stock.change?.toFixed(2)} (${isPositive ? '+' : ''}${stock.change_percent?.toFixed(2)}%)`
+                            }
                           </span>
                         </div>
                       </div>
 
-                      {/* Day Range Bar */}
+                      {/* Day / Issue Range Bar */}
                       <div className="space-y-1 mb-3 bg-slate-50 dark:bg-slate-950/50 p-2 rounded-lg border border-border/40">
                         <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
-                          <span>Low: ₹{low?.toLocaleString('en-IN')}</span>
-                          <span>High: ₹{high?.toLocaleString('en-IN')}</span>
+                          <span>{stock.category === 'Upcoming IPO' ? `Band Min: ₹${low}` : `Low: ₹${low?.toLocaleString('en-IN')}`}</span>
+                          <span>{stock.category === 'Upcoming IPO' ? `Band Max: ₹${high}` : `High: ₹${high?.toLocaleString('en-IN')}`}</span>
                         </div>
                         <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden relative">
                           <div 
-                            className={`h-full rounded-full ${isPositive ? 'bg-green-500' : 'bg-red-500'}`} 
+                            className={`h-full rounded-full ${stock.category === 'Upcoming IPO' ? 'bg-purple-500' : isPositive ? 'bg-green-500' : 'bg-red-500'}`} 
                             style={{ width: `${rangePercent}%` }}
                           />
                         </div>
@@ -417,8 +432,17 @@ export default function Dashboard() {
 
                       {/* Bottom stats row */}
                       <div className="pt-2 border-t border-border/50 flex justify-between items-center text-xs text-muted-foreground">
-                        <span>Vol: <strong className="text-slate-700 dark:text-slate-300">{stock.volume || '5.2M'}</strong></span>
-                        <span>M-Cap: <strong className="text-slate-700 dark:text-slate-300">{stock.market_cap || 'Large Cap'}</strong></span>
+                        {stock.category === 'Upcoming IPO' ? (
+                          <>
+                            <span>Lot Size: <strong className="text-purple-600 dark:text-purple-400 font-semibold">{stock.lot_size || 15} shares</strong></span>
+                            <span>Est M-Cap: <strong className="text-slate-700 dark:text-slate-300">{stock.market_cap || '₹25,000 Cr'}</strong></span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Vol: <strong className="text-slate-700 dark:text-slate-300">{stock.volume || '5.2M'}</strong></span>
+                            <span>M-Cap: <strong className="text-slate-700 dark:text-slate-300">{stock.market_cap || 'Large Cap'}</strong></span>
+                          </>
+                        )}
                         <span className="text-primary font-semibold group-hover:underline flex items-center gap-0.5">
                           Analyze →
                         </span>
