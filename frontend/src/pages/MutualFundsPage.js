@@ -1969,19 +1969,24 @@ export default function MutualFundsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredFunds.map((fund) => {
                   const isPositive = (fund.change || 0) >= 0;
+                  const fundTitle = fund.scheme_name || fund.name || fund.symbol || 'Mutual Fund Scheme';
+                  const fundHouse = fund.fund_house || fund.amc || 'Asset Management';
+                  const fundNav = fund.nav !== undefined && fund.nav !== null ? fund.nav : (fund.ltp || fund.price || 0);
+                  const schemeId = fund.scheme_code || fund.symbol || 'MF';
+
                   return (
                     <Card
-                      key={fund.scheme_code}
-                      onClick={() => navigate(`/mutual-funds/${fund.scheme_code}`)}
+                      key={schemeId}
+                      onClick={() => navigate(`/mutual-funds/${schemeId}`)}
                       className="hover:shadow-lg hover:border-primary/50 transition-all duration-200 bg-white dark:bg-slate-900 border-border/80 flex flex-col justify-between cursor-pointer group"
                     >
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
                             <CardTitle className="text-base font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                              {fund.scheme_name}
+                              {fundTitle}
                             </CardTitle>
-                            <p className="text-xs text-muted-foreground mt-0.5">{fund.fund_house || 'Asset Management'}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{fundHouse}</p>
                           </div>
                           <div className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors shrink-0">
                             <ArrowUpRight className="h-4 w-4" />
@@ -1989,7 +1994,7 @@ export default function MutualFundsPage() {
                         </div>
                         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                           <Badge variant="secondary" className="text-[11px] font-semibold bg-primary/10 text-primary border-transparent">
-                            {fund.category}
+                            {fund.category || 'Equity'}
                           </Badge>
                           <TelemetryBadge source={fund.data_source || 'Official AMFI Feed'} status={fund.status || 'Live'} />
                           {fund.risk && (
@@ -2005,7 +2010,7 @@ export default function MutualFundsPage() {
                           <div>
                             <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Current NAV (LTP)</span>
                             <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                              ₹{fund.nav?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              ₹{typeof fundNav === 'number' ? fundNav.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : fundNav}
                             </span>
                           </div>
                           <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -2015,7 +2020,7 @@ export default function MutualFundsPage() {
                           }`}>
                             {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                             <span>
-                              {isPositive ? '+' : ''}{fund.change?.toFixed(2)} ({isPositive ? '+' : ''}{fund.change_percent?.toFixed(2)}%)
+                              {isPositive ? '+' : ''}{(fund.change || 0).toFixed(2)} ({isPositive ? '+' : ''}{(fund.change_percent || 0).toFixed(2)}%)
                             </span>
                           </div>
                         </div>

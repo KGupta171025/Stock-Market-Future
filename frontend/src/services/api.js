@@ -1494,6 +1494,7 @@ const timeSeriesCache = new Map();
 
 // Strict Schema Normalizer for all feeds guaranteeing all mandatory fields
 export const normalizeQuote = (raw, defaultExchange = 'NSE', defaultSource = 'Exchange Real-Time Feed') => {
+  if (!raw) return raw;
   const nowIso = new Date().toISOString();
   const ltp = parseFloat(raw.ltp || raw.price || raw.nav || raw.close || 0);
   const prevClose = parseFloat(raw.prev_close || raw.previous_close || (ltp - (raw.change || 0)) || ltp);
@@ -1509,8 +1510,13 @@ export const normalizeQuote = (raw, defaultExchange = 'NSE', defaultSource = 'Ex
   const lowPrice = parseFloat(raw.low || Math.min(ltp, prevClose, openPrice));
 
   return {
-    symbol: raw.symbol || '',
+    ...raw,
+    symbol: raw.symbol || raw.scheme_code || '',
     name: raw.name || raw.scheme_name || raw.symbol || '',
+    scheme_name: raw.scheme_name || raw.name || raw.symbol || '',
+    scheme_code: raw.scheme_code || raw.symbol || '',
+    fund_house: raw.fund_house || raw.amc || 'Asset Management',
+    nav: raw.nav !== undefined ? parseFloat(raw.nav) : parseFloat(ltp.toFixed(4)),
     exchange: raw.exchange || defaultExchange,
     category: raw.category || raw.sector || 'Equities',
     sector: raw.sector || raw.category || 'Equities',
@@ -1526,7 +1532,7 @@ export const normalizeQuote = (raw, defaultExchange = 'NSE', defaultSource = 'Ex
     high: parseFloat(highPrice.toFixed(2)),
     low: parseFloat(lowPrice.toFixed(2)),
     volume: raw.volume || (raw.exchange === 'NASDAQ' ? '24.5M' : '5.2M'),
-    exchange_timestamp: raw.exchange_timestamp || raw.datetime || nowIso,
+    exchange_timestamp: raw.exchange_timestamp || raw.datetime || raw.date || nowIso,
     received_timestamp: raw.received_timestamp || nowIso,
     data_source: raw.data_source || defaultSource,
     status: raw.status || 'Live',
