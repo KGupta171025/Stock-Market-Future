@@ -22,10 +22,10 @@ export default function LiveAutoRefreshBar({
   }, [lastUpdated]);
 
   const speedOptions = [
-    { label: '1s', value: 1000 },
-    { label: '2s (Fast)', value: 2000 },
+    { label: '0.5s (Ultra)', value: 500 },
+    { label: '1s (Fast)', value: 1000 },
+    { label: '2s', value: 2000 },
     { label: '5s', value: 5000 },
-    { label: '10s', value: 10000 },
   ];
 
   return (
